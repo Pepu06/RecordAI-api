@@ -148,6 +148,18 @@ async function events(req, res, next) {
       })
       .filter(e => !!e.phone); // only events with a client phone number
 
+    // Sync GCal color+title for events whose DB status differs from GCal color (best effort)
+    const STATUS_SUFFIX = { confirmed: 'CONFIRMADO', cancelled: 'CANCELADO' };
+    for (const ev of data) {
+      const dbStatus = dbStatusMap[ev.id];
+      const gcalStatus = COLOR_STATUS[ev.colorId] || null;
+      if (dbStatus && dbStatus !== gcalStatus) {
+        const baseTitle = ev.title.replace(/\s*-\s*(CONFIRMADO|CANCELADO)$/i, '').trim();
+        const newTitle = STATUS_SUFFIX[dbStatus] ? `${baseTitle} - ${STATUS_SUFFIX[dbStatus]}` : baseTitle;
+        updateEventTitleAndColor(accessToken, ev.id, newTitle, dbStatus, { sendUpdates: 'none' }).catch(() => {});
+      }
+    }
+
     let contacts = [];
 
     // Ensure contacts exist for calendar events with phone
