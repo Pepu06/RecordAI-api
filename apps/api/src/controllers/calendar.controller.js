@@ -113,12 +113,13 @@ async function events(req, res, next) {
 
     const items = await getCalendarEvents(accessToken, { days: 30 }) || [];
 
-    // Mark which events are already imported
+    // Fetch DB appointments to use as authoritative status source
     const { data: synced } = await supabase
-      .from('appointments').select('google_event_id')
+      .from('appointments').select('google_event_id, status')
       .eq('tenant_id', req.tenantId).not('google_event_id', 'is', null);
 
     const syncedIds = new Set((synced || []).map(a => a.google_event_id)); // eslint-disable-line no-unused-vars
+    const dbStatusMap = Object.fromEntries((synced || []).map(a => [a.google_event_id, a.status]));
 
     const COLOR_STATUS = { '5': 'pending', '2': 'confirmed', '11': 'cancelled', '10': 'completed', '8': 'no_show' };
 
@@ -130,6 +131,8 @@ async function events(req, res, next) {
         const colorId = e.colorId || null;
         const phone = extractPhoneFromSummary(e.summary || '');
         const displayTitle = (e.summary || '(Sin título)').replace(/\s*-\s*(CONFIRMADO|CANCELADO)$/i, '').trim();
+        // DB status is authoritative; fall back to Google Calendar color
+        const status = dbStatusMap[e.id] || COLOR_STATUS[colorId] || null;
         return {
           id:          e.id,
           title:       displayTitle,
@@ -139,7 +142,7 @@ async function events(req, res, next) {
           isAllDay,
           attendees:   (e.attendees || []).filter(a => !a.self).map(a => ({ name: a.displayName || a.email, email: a.email })),
           colorId,
-          status:      COLOR_STATUS[colorId] || null,
+          status,
           description: e.description || '',
         };
       })
