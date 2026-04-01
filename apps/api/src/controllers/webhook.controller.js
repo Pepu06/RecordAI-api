@@ -161,11 +161,13 @@ async function processMessage(message, _metadata) {
           .eq('id', appointment.id)
           .single();
 
-        const date = new Date(fullAppt.scheduled_at).toLocaleString('es-AR', {
-          timeZone: tenant.timezone || 'America/Argentina/Buenos_Aires',
-          dateStyle: 'full',
-          timeStyle: 'short',
-        });
+        const tz = tenant.timezone || 'America/Argentina/Buenos_Aires';
+        const apptDate = new Date(fullAppt.scheduled_at);
+        const dateStr = apptDate.toLocaleDateString('es-AR', { timeZone: tz, dateStyle: 'full' });
+        const timeStr = apptDate.toLocaleTimeString('es-AR', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+
+        // Strip +549 prefix so template can prepend it: "+549{{2}}"
+        const rawPhone = fullAppt.contact.phone.replace(/^\+?549?/, '');
 
         const templateName = tenant.admin_cancel_template || env.WHATSAPP_TEMPLATE_CANCEL_ALERT;
         const adminNumbers = tenant.admin_whatsapp.split(',').map(n => n.trim()).filter(Boolean);
@@ -173,8 +175,9 @@ async function processMessage(message, _metadata) {
         for (const adminPhone of adminNumbers) {
           await sendTemplate(adminPhone, templateName, [
             fullAppt.contact.name,
-            fullAppt.contact.phone,
-            date,
+            rawPhone,
+            dateStr,
+            timeStr,
             fullAppt.service.name,
           ]).catch(() => {});
         }
