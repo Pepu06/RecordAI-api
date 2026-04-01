@@ -286,6 +286,8 @@
   cursor: pointer;
   transition: background 0.1s;
   background: rgba(255,255,255,0.03);
+  overflow: hidden;
+  min-width: 0;
 }
 .eventPill:hover { background: rgba(255,255,255,0.08); }
 
@@ -304,6 +306,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.4;
+  flex: 1;
+  min-width: 0;
 }
 
 .eventPillMore {

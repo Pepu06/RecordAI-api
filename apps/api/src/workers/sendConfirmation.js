@@ -38,7 +38,7 @@ async function sendConfirmation({ appointmentId }) {
     header: [{ name: 'encabezado', value: appointment.tenant?.business_name || 'RecordAI' }],
     body: [
       { name: 'nombre_cliente', value: appointment.contact.name },
-      { name: 'mensaje_editable', value: appointment.tenant?.message_template || '' },
+      { name: 'mensaje_editable', value: (appointment.tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ') },
       { name: 'fecha', value: fechaLabel },
       { name: 'hora', value: horaLabel },
     ],

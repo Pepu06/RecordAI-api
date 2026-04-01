@@ -136,7 +136,9 @@ export default function CalendarPage() {
     setCreating(true);
     setCreateError('');
     try {
-      await api.post('/calendar/events', createForm);
+      // datetime-local has no timezone; append Argentina offset so server stores correct UTC
+      const scheduledAt = createForm.scheduledAt ? createForm.scheduledAt + ':00-03:00' : createForm.scheduledAt;
+      await api.post('/calendar/events', { ...createForm, scheduledAt });
       setShowCreate(false);
       setCreateForm(EMPTY_CREATE);
       await fetchEvents();

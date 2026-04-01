@@ -330,7 +330,7 @@ async function remindEvent(req, res, next) {
       .single();
 
     const encabezado      = tenant?.business_name    || 'RecordAI';
-    const mensajeEditable = tenant?.message_template || '';
+    const mensajeEditable = (tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
 
     // Send approved Meta template: recordatorio_turno
     await sendTemplate(phone, 'recordatorio_turno', {
