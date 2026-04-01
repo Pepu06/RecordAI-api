@@ -73,7 +73,7 @@ async function findPendingAppointmentByPhone(phone) {
     .from('appointments')
     .select('id, tenant_id, google_event_id, user_id, contact_id')
     .eq('contact_id', matchedContact.id)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'confirmed'])
     .order('scheduled_at', { ascending: true })
     .limit(1)
     .maybeSingle();
