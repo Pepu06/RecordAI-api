@@ -23,6 +23,9 @@ const DEFAULTS = {
   adminWhatsapp:       '',
   adminAlertsEnabled:  false,
   adminDailyReportTime: '08:00',
+  reminderType:        'day_before',
+  reminderTime:        '10:00',
+  adminCancelTemplate: 'admin_cancelacion',
 };
 
 export default function SettingsPage() {
@@ -58,6 +61,9 @@ export default function SettingsPage() {
         admin_whatsapp:          settings.adminWhatsapp,
         admin_alerts_enabled:    settings.adminAlertsEnabled,
         admin_daily_report_time: settings.adminDailyReportTime,
+        reminder_type:           settings.reminderType,
+        reminder_time:           settings.reminderTime,
+        admin_cancel_template:   settings.adminCancelTemplate,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -161,6 +167,40 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* RECORDATORIOS */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Recordatorios</h2>
+          <p className={styles.sectionDesc}>Cuándo se envía el recordatorio automático al cliente</p>
+        </div>
+        <div className={styles.fields}>
+          <Field label="Momento del recordatorio">
+            <div className={styles.toggle}>
+              {[
+                { value: 'day_before', label: 'Día anterior' },
+                { value: 'same_day',   label: 'Mismo día' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  className={`${styles.toggleBtn} ${settings.reminderType === opt.value ? styles.toggleActive : ''}`}
+                  onClick={() => set('reminderType', opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Hora de envío" hint="A qué hora se envía el recordatorio (horario del negocio)">
+            <input
+              type="time"
+              className={`${styles.input} ${styles.inputSm}`}
+              value={settings.reminderTime}
+              onChange={e => set('reminderTime', e.target.value)}
+            />
+          </Field>
+        </div>
+      </section>
+
       {/* BOT */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
@@ -168,7 +208,7 @@ export default function SettingsPage() {
           <p className={styles.sectionDesc}>Alertas y reportes para el administrador</p>
         </div>
         <div className={styles.fields}>
-          <Field label="WhatsApp del admin" hint="Recibe notificaciones cuando un cliente confirma o cancela">
+          <Field label="WhatsApp del admin" hint="Separar con comas para múltiples números. Ej: +5491112345678, +5491187654321">
             <input className={styles.input} value={settings.adminWhatsapp} onChange={e => set('adminWhatsapp', e.target.value)} placeholder="+5491112345678" />
           </Field>
           <Field label="Alertas en tiempo real">
@@ -176,6 +216,9 @@ export default function SettingsPage() {
               <Switch checked={settings.adminAlertsEnabled} onChange={v => set('adminAlertsEnabled', v)} />
               <span className={styles.switchLabel}>{settings.adminAlertsEnabled ? 'Activadas' : 'Desactivadas'}</span>
             </div>
+          </Field>
+          <Field label="Template de cancelación" hint="Nombre del template de WhatsApp que se envía al admin cuando un turno se cancela">
+            <input className={styles.input} value={settings.adminCancelTemplate} onChange={e => set('adminCancelTemplate', e.target.value)} placeholder="admin_cancelacion" />
           </Field>
           <Field label="Hora del reporte diario" hint="Recibís un resumen de las citas del día a esta hora">
             <input type="time" className={`${styles.input} ${styles.inputSm}`} value={settings.adminDailyReportTime} onChange={e => set('adminDailyReportTime', e.target.value)} />

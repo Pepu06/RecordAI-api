@@ -5,6 +5,7 @@ const ALLOWED_FIELDS = [
   'business_name', 'contact_whatsapp', 'timezone', 'time_format',
   'messaging_enabled', 'message_template',
   'admin_whatsapp', 'admin_alerts_enabled', 'admin_daily_report_time',
+  'reminder_type', 'reminder_time', 'admin_cancel_template',
 ];
 
 const SELECT_COLS = ['id', 'name', 'slug', ...ALLOWED_FIELDS].join(', ');

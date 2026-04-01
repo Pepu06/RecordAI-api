@@ -1,5 +1,6 @@
 const { supabase } = require('@recordai/db');
 const { getCalendarEvent, updateEventTitleAndColor, refreshAccessToken } = require('../services/google');
+const { sendTemplate } = require('../services/whatsapp');
 const env = require('../config/env');
 const logger = require('../config/logger');
 
@@ -143,6 +144,47 @@ async function processMessage(message, _metadata) {
   if (logError) throw logError;
 
   logger.info({ appointmentId: appointment.id, status: newStatus }, 'Appointment status updated via WhatsApp');
+
+  // Notify admin on cancellation (best effort)
+  if (newStatus === 'cancelled') {
+    try {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('admin_whatsapp, admin_alerts_enabled, admin_cancel_template, timezone')
+        .eq('id', appointment.tenant_id)
+        .single();
+
+      if (tenant?.admin_alerts_enabled && tenant?.admin_whatsapp) {
+        const { data: fullAppt } = await supabase
+          .from('appointments')
+          .select('scheduled_at, contact:contacts(name, phone), service:services(name)')
+          .eq('id', appointment.id)
+          .single();
+
+        const date = new Date(fullAppt.scheduled_at).toLocaleString('es-AR', {
+          timeZone: tenant.timezone || 'America/Argentina/Buenos_Aires',
+          dateStyle: 'full',
+          timeStyle: 'short',
+        });
+
+        const templateName = tenant.admin_cancel_template || env.WHATSAPP_TEMPLATE_CANCEL_ALERT;
+        const adminNumbers = tenant.admin_whatsapp.split(',').map(n => n.trim()).filter(Boolean);
+
+        for (const adminPhone of adminNumbers) {
+          await sendTemplate(adminPhone, templateName, [
+            fullAppt.contact.name,
+            fullAppt.contact.phone,
+            date,
+            fullAppt.service.name,
+          ]).catch(() => {});
+        }
+
+        logger.info({ appointmentId: appointment.id, adminNumbers }, 'Admin cancellation alert sent');
+      }
+    } catch (err) {
+      logger.warn({ err }, 'Failed to send admin cancellation alert');
+    }
+  }
 
   // Update Google Calendar event (best effort)
   try {

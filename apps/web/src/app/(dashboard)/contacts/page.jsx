@@ -8,6 +8,7 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', phone: '', notes: '' });
   const [error, setError] = useState('');
 
@@ -20,13 +21,29 @@ export default function ContactsPage() {
     fetchContacts().finally(() => setLoading(false));
   }, []);
 
+  function startEdit(contact) {
+    setEditId(contact.id);
+    setForm({ name: contact.name, phone: contact.phone, notes: contact.notes || '' });
+    setShowForm(true);
+  }
+
+  function cancelForm() {
+    setEditId(null);
+    setForm({ name: '', phone: '', notes: '' });
+    setShowForm(false);
+    setError('');
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     try {
-      await api.post('/contacts', form);
-      setForm({ name: '', phone: '', notes: '' });
-      setShowForm(false);
+      if (editId) {
+        await api.put(`/contacts/${editId}`, form);
+      } else {
+        await api.post('/contacts', form);
+      }
+      cancelForm();
       fetchContacts();
     } catch (err) {
       setError(err.message);
@@ -43,13 +60,19 @@ export default function ContactsPage() {
     <div>
       <div className={styles.header}>
         <h1 className={styles.title}>Contactos</h1>
-        <button className={styles.btnPrimary} onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancelar' : '+ Nuevo contacto'}
+        <button
+          className={styles.btnPrimary}
+          onClick={() => (showForm && !editId ? cancelForm() : setShowForm(true))}
+        >
+          {showForm && !editId ? 'Cancelar' : '+ Nuevo contacto'}
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className={styles.form}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600 }}>
+            {editId ? 'Editar contacto' : 'Nuevo contacto'}
+          </h3>
           <input
             placeholder="Nombre"
             value={form.name}
@@ -71,7 +94,14 @@ export default function ContactsPage() {
             className={styles.input}
           />
           {error && <p className={styles.error}>{error}</p>}
-          <button type="submit" className={styles.btnPrimary}>Guardar</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="submit" className={styles.btnPrimary}>
+              {editId ? 'Actualizar' : 'Guardar'}
+            </button>
+            <button type="button" onClick={cancelForm} className={styles.btnDelete}>
+              Cancelar
+            </button>
+          </div>
         </form>
       )}
 
@@ -96,7 +126,10 @@ export default function ContactsPage() {
                   <td>{c.name}</td>
                   <td>{c.phone}</td>
                   <td>{c.notes || '—'}</td>
-                  <td>
+                  <td style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => startEdit(c)} className={styles.btnPrimary}>
+                      Editar
+                    </button>
                     <button onClick={() => handleDelete(c.id)} className={styles.btnDelete}>
                       Eliminar
                     </button>

@@ -29,6 +29,27 @@ async function list(req, res, next) {
   } catch (err) { return next(err); }
 }
 
+function calcReminderDelay(scheduledAt, timezone, reminderType, reminderTime) {
+  const [hh, mm] = (reminderTime || '10:00').split(':').map(Number);
+  const appt = new Date(scheduledAt);
+
+  // Get the appointment's local date (YYYY-MM-DD) in the tenant timezone
+  const localDateStr = appt.toLocaleDateString('en-CA', { timeZone: timezone || 'UTC' });
+  let [year, month, day] = localDateStr.split('-').map(Number);
+  if (reminderType === 'day_before') day -= 1;
+
+  // Build a Date treating local time as UTC (to correct below)
+  const reminderAsUTC = new Date(Date.UTC(year, month - 1, day, hh, mm, 0));
+
+  // Find the actual UTC offset for the tenant timezone at that time
+  const localMs = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: timezone || 'UTC' })).getTime();
+  const utcMs   = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: 'UTC' })).getTime();
+  const offsetMs = utcMs - localMs;
+
+  const reminderUTC = new Date(reminderAsUTC.getTime() + offsetMs);
+  return reminderUTC.getTime() - Date.now();
+}
+
 async function create(req, res, next) {
   try {
     const { contactId, serviceId, scheduledAt, notes } = req.body;
@@ -53,8 +74,21 @@ async function create(req, res, next) {
 
     queueJob(JobName.SEND_CONFIRMATION);
 
-    const reminderDelay = new Date(scheduledAt).getTime() - Date.now() - 24 * 60 * 60 * 1000;
+    // Fetch tenant settings to calculate reminder timing
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('timezone, reminder_type, reminder_time')
+      .eq('id', req.tenantId)
+      .single();
+
+    const reminderDelay = calcReminderDelay(
+      scheduledAt,
+      tenant?.timezone || 'UTC',
+      tenant?.reminder_type || 'day_before',
+      tenant?.reminder_time || '10:00',
+    );
     if (reminderDelay > 0) queueJob(JobName.SEND_REMINDER, { delay: reminderDelay });
+
     queueJob(JobName.SEND_FOLLOW_UP, { delay: 2 * 60 * 60 * 1000 });
 
     return res.status(201).json({ success: true, data: convertKeys(data) });
