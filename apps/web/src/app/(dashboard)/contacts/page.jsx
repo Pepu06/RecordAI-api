@@ -1,0 +1,112 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { api } from '../../../lib/api';
+import styles from './contacts.module.css';
+
+export default function ContactsPage() {
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', phone: '', notes: '' });
+  const [error, setError] = useState('');
+
+  async function fetchContacts() {
+    const res = await api.get('/contacts');
+    setContacts(res.data);
+  }
+
+  useEffect(() => {
+    fetchContacts().finally(() => setLoading(false));
+  }, []);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    try {
+      await api.post('/contacts', form);
+      setForm({ name: '', phone: '', notes: '' });
+      setShowForm(false);
+      fetchContacts();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('¿Eliminar contacto?')) return;
+    await api.delete(`/contacts/${id}`);
+    fetchContacts();
+  }
+
+  return (
+    <div>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Contactos</h1>
+        <button className={styles.btnPrimary} onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Cancelar' : '+ Nuevo contacto'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <input
+            placeholder="Nombre"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className={styles.input}
+            required
+          />
+          <input
+            placeholder="Teléfono (ej: +5491112345678)"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            className={styles.input}
+            required
+          />
+          <input
+            placeholder="Notas (opcional)"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            className={styles.input}
+          />
+          {error && <p className={styles.error}>{error}</p>}
+          <button type="submit" className={styles.btnPrimary}>Guardar</button>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="spinnerWrap"><div className="spinner" /></div>
+      ) : contacts.length === 0 ? (
+        <p className={styles.empty}>No hay contactos aún.</p>
+      ) : (
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Notas</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {contacts.map((c) => (
+                <tr key={c.id}>
+                  <td>{c.name}</td>
+                  <td>{c.phone}</td>
+                  <td>{c.notes || '—'}</td>
+                  <td>
+                    <button onClick={() => handleDelete(c.id)} className={styles.btnDelete}>
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

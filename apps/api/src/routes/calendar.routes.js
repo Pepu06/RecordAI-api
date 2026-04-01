@@ -1,0 +1,16 @@
+const { Router } = require('express');
+const auth = require('../middleware/auth');
+const { calendarStatus, connect, disconnect, events, updateEventStatus, remindEvent } = require('../controllers/calendar.controller');
+
+const router = Router();
+
+router.use(auth);
+
+router.get('/status',        calendarStatus);
+router.post('/connect',      connect);
+router.post('/disconnect',   disconnect);
+router.get('/events',                  events);
+router.patch('/events/:eventId/status', updateEventStatus);
+router.post('/remind/:eventId',         remindEvent);
+
+module.exports = router;
