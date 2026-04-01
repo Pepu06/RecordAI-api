@@ -234,6 +234,8 @@
   flex-direction: column;
   gap: 4px;
   position: relative;
+  overflow: hidden;
+  min-width: 0;
 }
 .dayCell:nth-child(7n) { border-right: none; }
 .dayCell:hover { background: rgba(14,165,255,0.04); }

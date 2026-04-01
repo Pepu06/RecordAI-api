@@ -31,10 +31,9 @@ function normalizePhone(rawPhone = '') {
 }
 
 function extractPhoneFromSummary(summary = '') {
-  // Prefer bracketed number: [ +54911... ] or [11...]
+  // Only match bracketed numbers: [+54911...] or [11...]
   const bracketMatch = summary.match(/\[\s*(\+?\d[\d\s()-]{7,})\s*\]/);
-  const source = bracketMatch?.[1] || summary.match(PHONE_REGEX)?.[0] || null;
-  return normalizePhone(source);
+  return bracketMatch ? normalizePhone(bracketMatch[1]) : null;
 }
 
 function extractClientName(summary = '') {

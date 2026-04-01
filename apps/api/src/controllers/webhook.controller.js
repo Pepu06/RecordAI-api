@@ -154,7 +154,7 @@ async function processMessage(message, _metadata) {
         .eq('id', appointment.tenant_id)
         .single();
 
-      if (tenant?.admin_alerts_enabled && tenant?.admin_whatsapp) {
+      if (tenant?.admin_whatsapp) {
         const { data: fullAppt } = await supabase
           .from('appointments')
           .select('scheduled_at, contact:contacts(name, phone), service:services(name)')
