@@ -155,7 +155,7 @@ export default function SettingsPage() {
                   </div>
                   <p>Hola María García, como estas?</p>
                   {settings.messageTemplate && (
-                    <p style={{ marginTop: 8 }}>{settings.messageTemplate}</p>
+                    <p style={{ marginTop: 8, whiteSpace: 'pre-line' }}>{settings.messageTemplate}</p>
                   )}
                   <p style={{ marginTop: 8 }}>El dia viernes 04-04, a las 10:30hs.</p>
                   <p style={{ marginTop: 8 }}>Muchas gracias.</p>

@@ -236,7 +236,7 @@ async function events(req, res, next) {
 
         const service = matchService(event.description);
 
-        const { error: createAppointmentError } = await supabase
+        const { data: newAppointment, error: createAppointmentError } = await supabase
           .from('appointments')
           .insert({
             tenant_id:      req.tenantId,
@@ -246,10 +246,25 @@ async function events(req, res, next) {
             scheduled_at:   new Date(event.start).toISOString(),
             status:         event.status || 'pending',
             google_event_id: event.id,
-          });
+          })
+          .select('id, scheduled_at')
+          .single();
 
         if (createAppointmentError) throw createAppointmentError;
         syncedIds.add(event.id);
+
+        // Queue WhatsApp jobs for calendar-synced appointments
+        if (newAppointment) {
+          const queueJob = (name, opts = {}) =>
+            appointmentsQueue.add(name, { appointmentId: newAppointment.id }, opts).catch(() => {});
+
+          queueJob(JobName.SEND_CONFIRMATION);
+
+          const { data: tenant } = await supabase.from('tenants').select('timezone, reminder_type, reminder_time').eq('id', req.tenantId).single();
+          const reminderDelay = calcReminderDelay(newAppointment.scheduled_at, tenant?.timezone, tenant?.reminder_type, tenant?.reminder_time);
+          if (reminderDelay > 0) queueJob(JobName.SEND_REMINDER, { delay: reminderDelay });
+          queueJob(JobName.SEND_FOLLOW_UP, { delay: 2 * 60 * 60 * 1000 });
+        }
       }
     }
 

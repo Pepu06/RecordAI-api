@@ -57,11 +57,17 @@ async function sendInteractiveButtons(phone, body, buttons) {
 
 // Builds a single component parameter.
 // Accepts either a plain value or { name, value } for named params (required by API v25+).
+function normalizeTemplateText(value) {
+  return String(value ?? '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\\n/g, '\n');
+}
+
 function toParam(p) {
   if (p !== null && typeof p === 'object' && 'value' in p) {
-    return { type: 'text', parameter_name: p.name, text: String(p.value) };
+    return { type: 'text', parameter_name: p.name, text: normalizeTemplateText(p.value) };
   }
-  return { type: 'text', text: String(p) };
+  return { type: 'text', text: normalizeTemplateText(p) };
 }
 
 async function sendTemplate(phone, templateName, params = []) {
