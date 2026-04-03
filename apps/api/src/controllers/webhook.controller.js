@@ -138,7 +138,7 @@ async function processMessage(message, _metadata) {
     try {
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('admin_whatsapp, timezone, time_format')
+        .select('admin_whatsapp, timezone, time_format, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_token')
         .eq('id', appointment.tenant_id)
         .single();
 
@@ -156,6 +156,13 @@ async function processMessage(message, _metadata) {
 
         const rawPhone = fullAppt.contact.phone.replace(/^\+?549?/, '');
 
+        const tenantConfig = {
+          provider: tenant.whatsapp_provider || 'meta',
+          whatsappPhoneNumberId: tenant.whatsapp_phone_number_id,
+          whatsappAccessToken: tenant.whatsapp_access_token,
+          wasenderToken: tenant.wasender_token,
+        };
+
         // Always use the default cancellation template
         const templateName = 'admin_cancelacion';
         const adminNumbers = tenant.admin_whatsapp.split(',').map(n => n.trim()).filter(Boolean);
@@ -167,7 +174,7 @@ async function processMessage(message, _metadata) {
             dateStr,
             timeStr,
             fullAppt.service.name,
-          ]).catch(() => {});
+          ], tenantConfig).catch(() => {});
         }
 
         logger.info({ appointmentId: appointment.id, adminNumbers }, 'Admin cancellation alert sent');

@@ -44,8 +44,10 @@ model Tenant {
   name                   String
   slug                   String   @unique
   plan                   String   @default("free")
+  whatsappProvider       String?  @default("meta")
   whatsappPhoneNumberId  String?
   whatsappAccessToken    String?
+  wasenderToken          String?
   businessName           String?
   timezone               String?  @default("America/Argentina/Buenos_Aires")
   reminderType           String?  @default("day_before")

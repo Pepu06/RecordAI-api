@@ -35,6 +35,13 @@ async function sendConfirmation({ appointmentId }) {
   const reminderType = appointment.tenant?.reminder_type || 'day_before';
   const recordatorioTexto = reminderType === 'same_day' ? 'el mismo día' : 'el día anterior';
 
+  // Configuración del proveedor de WhatsApp
+  const tenantConfig = {
+    provider: appointment.tenant?.whatsapp_provider || 'meta',
+    whatsappPhoneNumberId: appointment.tenant?.whatsapp_phone_number_id,
+    whatsappAccessToken: appointment.tenant?.whatsapp_access_token,
+    wasenderToken: appointment.tenant?.wasender_token,
+  };
   
   await sendTemplate(appointment.contact.phone, 'confirmacion_turno', {
     body: [
@@ -44,7 +51,7 @@ async function sendConfirmation({ appointmentId }) {
       horaLabel,                       // {{4}} hora de la cita
       appointment.service.name,        // {{5}} servicio
     ],
-  });
+  }, tenantConfig);
 
   const { error: updateError } = await supabase
     .from('appointments')

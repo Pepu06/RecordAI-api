@@ -20,6 +20,10 @@ const DEFAULTS = {
   timeFormat:           '24h',
   messagingEnabled:     true,
   messageTemplate:      '',
+  whatsappProvider:     'meta',
+  whatsappPhoneNumberId: '',
+  whatsappAccessToken:   '',
+  wasenderToken:         '',
   adminWhatsapp:        '',
   adminAlertsEnabled:   false,
   reportDays:           '1,2,3,4,5',
@@ -65,6 +69,10 @@ export default function SettingsPage() {
       if (d.timeFormat          != null) mapped.timeFormat          = d.timeFormat;
       if (d.messagingEnabled    != null) mapped.messagingEnabled    = d.messagingEnabled;
       if (d.messageTemplate     != null) mapped.messageTemplate     = d.messageTemplate;
+      if (d.whatsappProvider    != null) mapped.whatsappProvider    = d.whatsappProvider;
+      if (d.whatsappPhoneNumberId != null) mapped.whatsappPhoneNumberId = d.whatsappPhoneNumberId;
+      if (d.whatsappAccessToken != null) mapped.whatsappAccessToken = d.whatsappAccessToken;
+      if (d.wasenderToken       != null) mapped.wasenderToken       = d.wasenderToken;
       if (d.adminWhatsapp       != null) mapped.adminWhatsapp       = d.adminWhatsapp;
       if (d.adminAlertsEnabled  != null) mapped.adminAlertsEnabled  = d.adminAlertsEnabled;
       if (d.reportDays           != null) mapped.reportDays           = d.reportDays;
@@ -90,6 +98,10 @@ export default function SettingsPage() {
         time_format:          settings.timeFormat,
         messaging_enabled:    settings.messagingEnabled,
         message_template:     settings.messageTemplate,
+        whatsapp_provider:    settings.whatsappProvider,
+        whatsapp_phone_number_id: settings.whatsappPhoneNumberId,
+        whatsapp_access_token: settings.whatsappAccessToken,
+        wasender_token:       settings.wasenderToken,
         admin_whatsapp:       settings.adminWhatsapp,
         admin_alerts_enabled: settings.adminAlertsEnabled,
         report_days:             settings.reportDays,
@@ -151,6 +163,47 @@ export default function SettingsPage() {
               <span className={styles.switchLabel}>{settings.messagingEnabled ? 'Enviando mensajes' : 'Pausado'}</span>
             </div>
           </Field>
+        </div>
+      </section>
+
+      {/* PROVEEDOR DE WHATSAPP */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Proveedor de WhatsApp</h2>
+          <p className={styles.sectionDesc}>Elegí qué servicio usar para enviar mensajes</p>
+        </div>
+        <div className={styles.fields}>
+          <Field label="Proveedor">
+            <div className={styles.toggle}>
+              {[
+                { value: 'meta', label: 'Meta (WhatsApp Business API)' },
+                { value: 'wasender', label: 'WasenderAPI' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  className={`${styles.toggleBtn} ${settings.whatsappProvider === opt.value ? styles.toggleActive : ''}`}
+                  onClick={() => set('whatsappProvider', opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          {settings.whatsappProvider === 'meta' ? (
+            <>
+              <Field label="Phone Number ID" hint="ID del número de teléfono de WhatsApp Business">
+                <input className={styles.input} value={settings.whatsappPhoneNumberId} onChange={e => set('whatsappPhoneNumberId', e.target.value)} placeholder="123456789012345" />
+              </Field>
+              <Field label="Access Token" hint="Token de acceso de la API de Meta">
+                <input className={styles.input} type="password" value={settings.whatsappAccessToken} onChange={e => set('whatsappAccessToken', e.target.value)} placeholder="EAAxxxxxxxxx" />
+              </Field>
+            </>
+          ) : (
+            <Field label="Wasender Token" hint="Token de API de WasenderAPI">
+              <input className={styles.input} type="password" value={settings.wasenderToken} onChange={e => set('wasenderToken', e.target.value)} placeholder="tu_token_wasender" />
+            </Field>
+          )}
         </div>
       </section>
 

@@ -2,9 +2,50 @@ const axios = require('axios');
 const logger = require('../config/logger');
 const env = require('../config/env');
 
-const MESSAGES_URL = `https://graph.facebook.com/v21.0/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+const META_MESSAGES_URL = `https://graph.facebook.com/v21.0/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+const WASENDER_API_URL = 'https://wasenderapi.com/api/send-message';
 
-async function sendTextMessage(phone, text) {
+/**
+ * Send a message using the configured provider
+ * @param {string} phone - Phone number
+ * @param {string} text - Message text
+ * @param {object} tenantConfig - Tenant configuration { provider, whatsappPhoneNumberId, whatsappAccessToken, wasenderToken }
+ */
+async function sendTextMessage(phone, text, tenantConfig = {}) {
+  const provider = tenantConfig.provider || 'meta';
+
+  if (provider === 'wasender') {
+    return sendWasenderMessage(phone, text, tenantConfig.wasenderToken);
+  }
+  
+  return sendMetaTextMessage(phone, text, tenantConfig);
+}
+
+async function sendWasenderMessage(phone, text, token) {
+  try {
+    const response = await axios.post(WASENDER_API_URL, {
+      to: phone,
+      text: text
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token || env.WASENDER_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    logger.info({ phone }, '[WasenderAPI] Mensaje enviado');
+    return response.data;
+  } catch (error) {
+    logger.error({ phone, error: error.response?.data || error.message }, '[WasenderAPI] Error enviando mensaje');
+    throw error;
+  }
+}
+
+async function sendMetaTextMessage(phone, text, tenantConfig = {}) {
+  const phoneNumberId = tenantConfig.whatsappPhoneNumberId || env.WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken = tenantConfig.whatsappAccessToken || env.WHATSAPP_ACCESS_TOKEN;
+  const messagesUrl = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
+
   const payload = {
     messaging_product: 'whatsapp',
     recipient_type:    'individual',
@@ -13,19 +54,32 @@ async function sendTextMessage(phone, text) {
     text: { body: text },
   };
 
-  const response = await axios.post(MESSAGES_URL, payload, {
+  const response = await axios.post(messagesUrl, payload, {
     headers: {
-      Authorization:  `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
+      Authorization:  `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
   });
 
   const messageId = response.data.messages?.[0]?.id;
-  logger.info({ phone, messageId }, '[WhatsApp] Mensaje enviado');
+  logger.info({ phone, messageId }, '[Meta WhatsApp] Mensaje enviado');
   return response.data;
 }
 
-async function sendInteractiveButtons(phone, body, buttons) {
+async function sendInteractiveButtons(phone, body, buttons, tenantConfig = {}) {
+  const provider = tenantConfig.provider || 'meta';
+  
+  // Wasender doesn't support interactive buttons, fall back to text
+  if (provider === 'wasender') {
+    const buttonsText = buttons.map((btn, i) => `${i + 1}. ${btn.title}`).join('\n');
+    const fullText = `${body}\n\n${buttonsText}`;
+    return sendWasenderMessage(phone, fullText, tenantConfig.wasenderToken);
+  }
+
+  const phoneNumberId = tenantConfig.whatsappPhoneNumberId || env.WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken = tenantConfig.whatsappAccessToken || env.WHATSAPP_ACCESS_TOKEN;
+  const messagesUrl = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
+
   const payload = {
     messaging_product: 'whatsapp',
     recipient_type:    'individual',
@@ -43,15 +97,15 @@ async function sendInteractiveButtons(phone, body, buttons) {
     },
   };
 
-  const response = await axios.post(MESSAGES_URL, payload, {
+  const response = await axios.post(messagesUrl, payload, {
     headers: {
-      Authorization:  `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
+      Authorization:  `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
   });
 
   const messageId = response.data.messages?.[0]?.id;
-  logger.info({ phone, messageId }, '[WhatsApp] Interactive enviado');
+  logger.info({ phone, messageId }, '[Meta WhatsApp] Interactive enviado');
   return response.data;
 }
 
@@ -70,7 +124,19 @@ function toParam(p) {
   return { type: 'text', text: normalizeTemplateText(p) };
 }
 
-async function sendTemplate(phone, templateName, params = []) {
+async function sendTemplate(phone, templateName, params = [], tenantConfig = {}) {
+  const provider = tenantConfig.provider || 'meta';
+  
+  // Wasender doesn't use templates, convert to plain text
+  if (provider === 'wasender') {
+    const text = buildTemplateText(templateName, params);
+    return sendWasenderMessage(phone, text, tenantConfig.wasenderToken);
+  }
+
+  const phoneNumberId = tenantConfig.whatsappPhoneNumberId || env.WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken = tenantConfig.whatsappAccessToken || env.WHATSAPP_ACCESS_TOKEN;
+  const messagesUrl = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
+
   let headerParams = [];
   let bodyParams = [];
 
@@ -115,16 +181,32 @@ async function sendTemplate(phone, templateName, params = []) {
     },
   };
 
-  const response = await axios.post(MESSAGES_URL, payload, {
+  const response = await axios.post(messagesUrl, payload, {
     headers: {
-      Authorization:  `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
+      Authorization:  `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
   });
 
   const messageId = response.data.messages?.[0]?.id;
-  logger.info({ phone, templateName, messageId }, '[WhatsApp] Template enviado');
+  logger.info({ phone, templateName, messageId }, '[Meta WhatsApp] Template enviado');
   return response.data;
+}
+
+/**
+ * Build plain text from template params for Wasender
+ */
+function buildTemplateText(templateName, params) {
+  const bodyParams = Array.isArray(params) ? params : (params?.body || []);
+  
+  // Map common templates to text format
+  if (templateName === 'admin_cancelacion') {
+    const [name, phone, date, time, service] = bodyParams;
+    return `🚫 Cancelación de turno\n\nCliente: ${name}\nTeléfono: ${phone}\nFecha: ${date}\nHora: ${time}\nServicio: ${service}`;
+  }
+  
+  // Default: join params with newlines
+  return bodyParams.join('\n');
 }
 
 module.exports = { sendTextMessage, sendInteractiveButtons, sendTemplate };
