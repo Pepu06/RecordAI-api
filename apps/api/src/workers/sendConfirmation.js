@@ -35,7 +35,6 @@ async function sendConfirmation({ appointmentId }) {
   const reminderType = appointment.tenant?.reminder_type || 'day_before';
   const recordatorioTexto = reminderType === 'same_day' ? 'el mismo día' : 'el día anterior';
 
-  // Enviar plantilla confirmacion_turno (sin botones, parámetros posicionales)
   await sendTemplate(appointment.contact.phone, 'confirmacion_turno', {
     body: [
       appointment.contact.name,        // {{1}} nombre del paciente

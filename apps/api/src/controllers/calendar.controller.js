@@ -90,7 +90,7 @@ async function connect(req, res, next) {
     const { access_token, refresh_token } = await exchangeCodeForTokens(code);
 
     await supabase.from('users').update({
-      google_access_token:  access_token,
+      google_access_token: access_token,
       google_refresh_token: refresh_token || undefined,
     }).eq('id', req.userId);
 
@@ -101,7 +101,7 @@ async function connect(req, res, next) {
 async function disconnect(req, res, next) {
   try {
     await supabase.from('users').update({
-      google_access_token:  null,
+      google_access_token: null,
       google_refresh_token: null,
     }).eq('id', req.userId);
     return res.json({ success: true });
@@ -136,13 +136,13 @@ async function events(req, res, next) {
         // DB status is authoritative; fall back to Google Calendar color
         const status = dbStatusMap[e.id] || COLOR_STATUS[colorId] || null;
         return {
-          id:          e.id,
-          title:       displayTitle,
+          id: e.id,
+          title: displayTitle,
           phone,
           start,
-          end:         e.end?.dateTime || e.end?.date,
+          end: e.end?.dateTime || e.end?.date,
           isAllDay,
-          attendees:   (e.attendees || []).filter(a => !a.self).map(a => ({ name: a.displayName || a.email, email: a.email })),
+          attendees: (e.attendees || []).filter(a => !a.self).map(a => ({ name: a.displayName || a.email, email: a.email })),
           colorId,
           status,
           description: e.description || '',
@@ -158,7 +158,7 @@ async function events(req, res, next) {
       if (dbStatus && dbStatus !== gcalStatus) {
         const baseTitle = ev.title.replace(/\s*-\s*(CONFIRMADO|CANCELADO)$/i, '').trim();
         const newTitle = STATUS_SUFFIX[dbStatus] ? `${baseTitle} - ${STATUS_SUFFIX[dbStatus]}` : baseTitle;
-        updateEventTitleAndColor(accessToken, ev.id, newTitle, dbStatus, { sendUpdates: 'none' }).catch(() => {});
+        updateEventTitleAndColor(accessToken, ev.id, newTitle, dbStatus, { sendUpdates: 'none' }).catch(() => { });
       }
     }
 
@@ -264,12 +264,12 @@ async function events(req, res, next) {
         const { data: newAppointment, error: createAppointmentError } = await supabase
           .from('appointments')
           .insert({
-            tenant_id:      req.tenantId,
-            contact_id:     contact.id,
-            service_id:     service.id,
-            user_id:        req.userId,
-            scheduled_at:   new Date(event.start).toISOString(),
-            status:         event.status || 'pending',
+            tenant_id: req.tenantId,
+            contact_id: contact.id,
+            service_id: service.id,
+            user_id: req.userId,
+            scheduled_at: new Date(event.start).toISOString(),
+            status: event.status || 'pending',
             google_event_id: event.id,
           })
           .select('id, scheduled_at')
@@ -281,7 +281,7 @@ async function events(req, res, next) {
         // Queue WhatsApp jobs for calendar-synced appointments
         if (newAppointment) {
           const queueJob = (name, opts = {}) =>
-            appointmentsQueue.add(name, { appointmentId: newAppointment.id }, opts).catch(() => {});
+            appointmentsQueue.add(name, { appointmentId: newAppointment.id }, opts).catch(() => { });
 
           queueJob(JobName.SEND_CONFIRMATION);
 
@@ -369,35 +369,39 @@ async function remindEvent(req, res, next) {
     const tenantTz = tenant?.timezone || 'America/Argentina/Buenos_Aires';
     const fechaLabel = dateObj
       ? dateObj.toLocaleDateString('es-AR', {
-          timeZone: tenantTz,
-          weekday: 'long',
-          day: '2-digit',
-          month: '2-digit',
-        })
+        timeZone: tenantTz,
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+      })
       : '';
     const horaLabel = dateObj
       ? formatTime(dateObj, {
-          timeZone: tenantTz,
-          timeFormat: tenant?.time_format,
-        })
+        timeZone: tenantTz,
+        timeFormat: tenant?.time_format,
+      })
       : '';
 
-    const encabezado      = tenant?.business_name    || 'RecordAI';
+    const encabezado = tenant?.business_name || 'RecordAI';
     const mensajeEditable = (tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
 
     // Send approved Meta template: recordatorio_turno
     await sendTemplate(phone, 'recordatorio_turno', {
       header: [{ name: 'encabezado', value: encabezado }],
       body: [
-        { name: 'nombre_cliente',   value: clientName },
+        { name: 'nombre_cliente', value: clientName },
         { name: 'mensaje_editable', value: mensajeEditable },
-        { name: 'fecha',            value: fechaLabel },
-        { name: 'hora',             value: horaLabel },
+        { name: 'fecha', value: fechaLabel },
+        { name: 'hora', value: horaLabel },
+      ],
+      buttons: [
+        { index: 0, payload: `confirm_${appt.id}` },
+        { index: 1, payload: `cancel_${appt.id}` },
       ],
     });
 
     // Mark event as pending (yellow) in Calendar
-    updateEventColor(accessToken, eventId, 'pending').catch(() => {});
+    updateEventColor(accessToken, eventId, 'pending').catch(() => { });
 
     return res.json({ success: true, phone });
   } catch (err) { return next(err); }
@@ -416,10 +420,10 @@ async function createEvent(req, res, next) {
     const { data: appointment, error } = await supabase
       .from('appointments')
       .insert({
-        tenant_id:    req.tenantId,
-        contact_id:   contactId,
-        service_id:   serviceId,
-        user_id:      req.userId,
+        tenant_id: req.tenantId,
+        contact_id: contactId,
+        service_id: serviceId,
+        user_id: req.userId,
         scheduled_at: new Date(scheduledAt).toISOString(),
         notes,
       })
@@ -431,14 +435,14 @@ async function createEvent(req, res, next) {
     const accessToken = await getValidToken(req.userId);
     if (accessToken) {
       const startDate = new Date(scheduledAt);
-      const endDate   = new Date(startDate.getTime() + service.duration_minutes * 60000);
+      const endDate = new Date(startDate.getTime() + service.duration_minutes * 60000);
       const attendees = contact.email ? [contact.email] : [];
 
       const calEvent = await createCalendarEvent(accessToken, {
-        summary:       `${contact.name} [${contact.phone}]`,
-        description:   `(${service.name})`,
+        summary: `${contact.name} [${contact.phone}]`,
+        description: `(${service.name})`,
         startDateTime: startDate.toISOString(),
-        endDateTime:   endDate.toISOString(),
+        endDateTime: endDate.toISOString(),
         attendees,
       }).catch(() => null);
 
@@ -449,7 +453,7 @@ async function createEvent(req, res, next) {
 
     // Queue WhatsApp jobs
     const queueJob = (name, opts = {}) =>
-      appointmentsQueue.add(name, { appointmentId: appointment.id }, opts).catch(() => {});
+      appointmentsQueue.add(name, { appointmentId: appointment.id }, opts).catch(() => { });
 
     queueJob(JobName.SEND_CONFIRMATION);
 
@@ -470,7 +474,7 @@ function calcReminderDelay(scheduledAt, timezone, reminderType, reminderTime) {
   if (reminderType === 'day_before') day -= 1;
   const reminderAsUTC = new Date(Date.UTC(year, month - 1, day, hh, mm, 0));
   const localMs = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: timezone || 'UTC' })).getTime();
-  const utcMs   = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: 'UTC' })).getTime();
+  const utcMs = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: 'UTC' })).getTime();
   return new Date(reminderAsUTC.getTime() + (utcMs - localMs)).getTime() - Date.now();
 }
 

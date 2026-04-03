@@ -7,9 +7,10 @@ import styles from './dashboard.page.module.css';
 const STATUS_CONFIG = {
   null:      { label: 'Sin enviar', color: 'var(--text-3)',  bg: 'var(--surface-3)' },
   pending:   { label: 'Pendiente',  color: 'var(--yellow)',  bg: 'var(--yellow-bg)' },
+  notified:  { label: 'Notificado', color: 'var(--blue)',    bg: 'var(--blue-bg)' },
   confirmed: { label: 'Confirmado', color: 'var(--green)',   bg: 'var(--green-bg)' },
   cancelled: { label: 'Cancelado',  color: 'var(--red)',     bg: 'var(--red-bg)' },
-  completed: { label: 'Completado', color: 'var(--blue)',    bg: 'var(--blue-bg)' },
+  completed: { label: 'Completado', color: 'var(--accent)',  bg: 'var(--accent-bg)' },
   no_show:   { label: 'No asistió', color: 'var(--gray)',    bg: 'var(--gray-bg)' },
 };
 
