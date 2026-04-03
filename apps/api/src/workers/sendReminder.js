@@ -1,6 +1,8 @@
 const { supabase } = require('@recordai/db');
 const { sendTemplate } = require('../services/whatsapp');
 const logger = require('../config/logger');
+const { appointmentsQueue } = require('./queue');
+const { JobName } = require('@recordai/shared');
 
 async function sendReminder({ appointmentId }) {
   const { data: appointment } = await supabase
@@ -32,6 +34,13 @@ async function sendReminder({ appointmentId }) {
   const encabezado     = (appointment.tenant?.business_name || 'RecordAI').slice(0, 40);
   const mensajeEdit    = (appointment.tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
 
+  const tenantConfig = {
+    provider: appointment.tenant?.whatsapp_provider || 'meta',
+    whatsappPhoneNumberId: appointment.tenant?.whatsapp_phone_number_id,
+    whatsappAccessToken: appointment.tenant?.whatsapp_access_token,
+    wasender_api_key: appointment.tenant?.wasender_api_key,
+  };
+
   // Enviar plantilla recordatorio_turno con botones
   await sendTemplate(appointment.contact.phone, 'recordatorio_turno', {
     header: [{ name: 'encabezado', value: encabezado }],
@@ -46,7 +55,7 @@ async function sendReminder({ appointmentId }) {
       { index: 0, payload: `confirm_${appointmentId}` },
       { index: 1, payload: `cancel_${appointmentId}` },
     ],
-  });
+  }, tenantConfig);
 
   const { error: updateError } = await supabase
     .from('appointments')
@@ -58,6 +67,10 @@ async function sendReminder({ appointmentId }) {
     logger.error({ appointmentId, updateError }, 'Failed to mark appointment as pending after reminder');
     throw updateError;
   }
+
+  appointmentsQueue
+    .add(JobName.SEND_FOLLOW_UP, { appointmentId }, { delay: 2 * 60 * 60 * 1000 })
+    .catch(() => { });
 
   logger.info({ appointmentId }, 'Reminder sent via recordatorio_turno template');
 }

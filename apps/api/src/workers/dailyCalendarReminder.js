@@ -3,6 +3,8 @@ const { supabase } = require('@recordai/db');
 const { sendTemplate } = require('../services/whatsapp');
 const logger = require('../config/logger');
 const { formatTime } = require('../utils/datetime');
+const { appointmentsQueue } = require('./queue');
+const { JobName } = require('@recordai/shared');
 
 function getReminderDateTimeUTC(scheduledAt, timezone, reminderType, reminderTime) {
   const [hh, mm] = (reminderTime || '10:00').split(':').map(Number);
@@ -41,7 +43,7 @@ async function runDailyReminders() {
       google_event_id,
       contact:contacts(name, phone),
       service:services(name),
-      tenant:tenants(business_name, message_template, timezone, time_format, reminder_type, reminder_time)
+      tenant:tenants(business_name, message_template, timezone, time_format, reminder_type, reminder_time, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key)
     `)
     .in('status', ['pending', 'notified', 'confirmed'])
     .is('reminder_sent_at', null)
@@ -77,6 +79,13 @@ async function runDailyReminders() {
     const encabezado = (appt.tenant?.business_name || 'RecordAI').slice(0, 40);
     const mensajeEditable = (appt.tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
 
+    const tenantConfig = {
+      provider: appt.tenant?.whatsapp_provider || 'meta',
+      whatsappPhoneNumberId: appt.tenant?.whatsapp_phone_number_id,
+      whatsappAccessToken: appt.tenant?.whatsapp_access_token,
+      wasender_api_key: appt.tenant?.wasender_api_key,
+    };
+
     try {
       await sendTemplate(appt.contact.phone, 'recordatorio_turno', {
         header: [{ name: 'encabezado', value: encabezado }],
@@ -90,7 +99,7 @@ async function runDailyReminders() {
           { index: 0, payload: `confirm_${appt.id}` },
           { index: 1, payload: `cancel_${appt.id}` },
         ],
-      });
+      }, tenantConfig);
 
       await supabase
         .from('appointments')
@@ -104,6 +113,10 @@ async function runDailyReminders() {
         direction: 'outbound',
         status: 'sent',
       });
+
+      appointmentsQueue
+        .add(JobName.SEND_FOLLOW_UP, { appointmentId: appt.id }, { delay: 2 * 60 * 60 * 1000 })
+        .catch(() => { });
 
       logger.info({ appointmentId: appt.id }, 'Daily reminder sent via recordatorio_turno');
     } catch (err) {

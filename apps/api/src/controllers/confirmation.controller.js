@@ -223,8 +223,119 @@ async function processAction(req, res) {
   `));
 }
 
+// ── Wasender confirmation page (by appointmentId, no Google token needed) ──
+
+async function confirmByAppointmentId(req, res) {
+  const { appointmentId } = req.params;
+  if (!appointmentId) return res.status(400).send(renderPage('Error', '<h1>Link inválido</h1>'));
+
+  const { data: appointment } = await supabase
+    .from('appointments')
+    .select('id, scheduled_at, status, contact:contacts(name), service:services(name), tenant:tenants(timezone, business_name)')
+    .eq('id', appointmentId)
+    .maybeSingle();
+
+  if (!appointment) return res.status(404).send(renderPage('No encontrado', '<h1>Turno no encontrado</h1>'));
+
+  const tz = appointment.tenant?.timezone || 'America/Argentina/Buenos_Aires';
+  const dateObj = new Date(appointment.scheduled_at);
+  const eventTime = dateObj.toLocaleString('es-AR', { timeZone: tz, dateStyle: 'full', timeStyle: 'short' });
+
+  if (appointment.status === 'confirmed') {
+    return res.send(renderPage('Turno confirmado', `
+      <div class="status-icon">🎉</div>
+      <h1>¡Ya confirmaste tu turno!</h1>
+      <p>Tu cita con ${escapeHtml(appointment.service?.name || '')} el ${escapeHtml(eventTime)} ya fue confirmada. Te esperamos.</p>
+    `));
+  }
+
+  if (appointment.status === 'cancelled') {
+    return res.send(renderPage('Turno cancelado', `
+      <div class="status-icon">👋</div>
+      <h1>Turno cancelado</h1>
+      <p>Este turno ya fue cancelado. Podés contactarnos para reprogramar.</p>
+    `));
+  }
+
+  const body = `
+    <div class="event-title">${escapeHtml(appointment.contact?.name || 'Tu turno')}</div>
+    <div class="event-time">📅 ${escapeHtml(eventTime)}</div>
+    <p>¿Podés confirmar tu asistencia al turno de <strong>${escapeHtml(appointment.service?.name || '')}</strong>?</p>
+    <div class="actions">
+      <a href="/c/${encodeURIComponent(appointmentId)}/action?estado=confirmed" class="btn btn-confirm">✓ Confirmar asistencia</a>
+      <a href="/c/${encodeURIComponent(appointmentId)}/action?estado=cancelled" class="btn btn-cancel">✕ Cancelar turno</a>
+    </div>
+  `;
+
+  res.send(renderPage('Confirmar turno', body));
+}
+
+async function processAppointmentAction(req, res) {
+  const { appointmentId } = req.params;
+  const { estado } = req.query;
+
+  if (!appointmentId || !['confirmed', 'cancelled'].includes(estado)) {
+    return res.status(400).send(renderPage('Error', '<h1>Parámetros inválidos</h1>'));
+  }
+
+  const { data: appointment } = await supabase
+    .from('appointments')
+    .select('id, scheduled_at, status, tenant_id, user_id, contact:contacts(name), service:services(name), tenant:tenants(timezone, admin_whatsapp, admin_alerts_enabled, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key)')
+    .eq('id', appointmentId)
+    .maybeSingle();
+
+  if (!appointment) return res.status(404).send(renderPage('No encontrado', '<h1>Turno no encontrado</h1>'));
+
+  if (appointment.status === estado) {
+    const icon    = estado === 'confirmed' ? '🎉' : '👋';
+    const heading = estado === 'confirmed' ? '¡Turno confirmado!' : 'Turno cancelado';
+    return res.send(renderPage(heading, `<div class="status-icon">${icon}</div><h1>${heading}</h1><p>Ya procesamos tu respuesta anteriormente.</p>`));
+  }
+
+  await supabase
+    .from('appointments')
+    .update({ status: estado })
+    .eq('id', appointmentId);
+
+  // Notify admin
+  try {
+    const tenant = appointment.tenant;
+    if (tenant?.admin_alerts_enabled && tenant?.admin_whatsapp) {
+      const tz = tenant.timezone || 'America/Argentina/Buenos_Aires';
+      const dateObj = new Date(appointment.scheduled_at);
+      const eventDate = dateObj.toLocaleString('es-AR', { timeZone: tz, dateStyle: 'medium', timeStyle: 'short' });
+      const icon = estado === 'confirmed' ? '✅' : '❌';
+      const action = estado === 'confirmed' ? 'confirmó' : 'canceló';
+      const tenantConfig = {
+        provider: tenant.whatsapp_provider || 'meta',
+        whatsappPhoneNumberId: tenant.whatsapp_phone_number_id,
+        whatsappAccessToken: tenant.whatsapp_access_token,
+        wasender_api_key: tenant.wasender_api_key,
+      };
+      sendTextMessage(
+        tenant.admin_whatsapp,
+        `${icon} *${appointment.contact?.name || 'Cliente'}* ${action} su cita del *${eventDate}*`,
+        tenantConfig
+      ).catch(() => {});
+    }
+  } catch { /* silent */ }
+
+  const isConfirmed = estado === 'confirmed';
+  const icon    = isConfirmed ? '🎉' : '👋';
+  const heading = isConfirmed ? '¡Turno confirmado!' : 'Turno cancelado';
+  const message = isConfirmed
+    ? 'Gracias por confirmar. Te esperamos en el turno.'
+    : 'Lamentamos que no puedas asistir. Podés contactarnos para reprogramar.';
+
+  res.send(renderPage(heading, `
+    <div class="status-icon">${icon}</div>
+    <h1>${heading}</h1>
+    <p>${message}</p>
+  `));
+}
+
 function escapeHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-module.exports = { confirmationPage, processAction };
+module.exports = { confirmationPage, processAction, confirmByAppointmentId, processAppointmentAction };

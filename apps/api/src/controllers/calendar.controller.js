@@ -288,7 +288,6 @@ async function events(req, res, next) {
           const { data: tenant } = await supabase.from('tenants').select('timezone, reminder_type, reminder_time').eq('id', req.tenantId).single();
           const reminderDelay = calcReminderDelay(newAppointment.scheduled_at, tenant?.timezone, tenant?.reminder_type, tenant?.reminder_time);
           if (reminderDelay > 0) queueJob(JobName.SEND_REMINDER, { delay: reminderDelay });
-          queueJob(JobName.SEND_FOLLOW_UP, { delay: 2 * 60 * 60 * 1000 });
         }
       }
     }
@@ -359,7 +358,7 @@ async function remindEvent(req, res, next) {
     // Fetch tenant settings
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('business_name, message_template, timezone, time_format')
+      .select('business_name, message_template, timezone, time_format, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key')
       .eq('id', req.tenantId)
       .single();
 
@@ -384,7 +383,14 @@ async function remindEvent(req, res, next) {
     const encabezado = tenant?.business_name || 'RecordAI';
     const mensajeEditable = (tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
 
-    // Send approved Meta template: recordatorio_turno with appointmentId in button payloads
+    const tenantConfig = {
+      provider: tenant?.whatsapp_provider || 'meta',
+      whatsappPhoneNumberId: tenant?.whatsapp_phone_number_id,
+      whatsappAccessToken: tenant?.whatsapp_access_token,
+      wasender_api_key: tenant?.wasender_api_key,
+    };
+
+    // Send reminder template with appointmentId in button payloads
     await sendTemplate(phone, 'recordatorio_turno', {
       header: [{ name: 'encabezado', value: encabezado }],
       body: [
@@ -399,7 +405,7 @@ async function remindEvent(req, res, next) {
           { index: 1, payload: `cancel_${appointment.id}` },
         ],
       } : {}),
-    });
+    }, tenantConfig);
 
     if (appointment?.id) {
       const { error: updateError } = await supabase
@@ -409,6 +415,10 @@ async function remindEvent(req, res, next) {
         .eq('tenant_id', req.tenantId);
 
       if (updateError) throw updateError;
+
+      appointmentsQueue
+        .add(JobName.SEND_FOLLOW_UP, { appointmentId: appointment.id }, { delay: 2 * 60 * 60 * 1000 })
+        .catch(() => { });
     }
 
     // Mark event as pending (yellow) in Calendar
@@ -472,7 +482,6 @@ async function createEvent(req, res, next) {
     const { data: tenant } = await supabase.from('tenants').select('timezone, reminder_type, reminder_time').eq('id', req.tenantId).single();
     const reminderDelay = calcReminderDelay(scheduledAt, tenant?.timezone, tenant?.reminder_type, tenant?.reminder_time);
     if (reminderDelay > 0) queueJob(JobName.SEND_REMINDER, { delay: reminderDelay });
-    queueJob(JobName.SEND_FOLLOW_UP, { delay: 2 * 60 * 60 * 1000 });
 
     return res.status(201).json({ success: true, data: convertKeys(appointment) });
   } catch (err) { return next(err); }

@@ -160,7 +160,7 @@ async function processMessage(message, _metadata) {
           provider: tenant.whatsapp_provider || 'meta',
           whatsappPhoneNumberId: tenant.whatsapp_phone_number_id,
           whatsappAccessToken: tenant.whatsapp_access_token,
-          wasenderToken: tenant.wasender_token,
+          wasender_api_key: tenant.wasender_api_key,
         };
 
         // Always use the default cancellation template
@@ -240,7 +240,7 @@ async function handleDailyReportRequest(phone, tenantId, reportType) {
   // Verify the phone matches the tenant's admin_whatsapp
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('admin_whatsapp, timezone')
+    .select('admin_whatsapp, timezone, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key')
     .eq('id', tenantId)
     .maybeSingle();
 
@@ -250,6 +250,12 @@ async function handleDailyReportRequest(phone, tenantId, reportType) {
   }
 
   const tz = tenant.timezone || 'America/Argentina/Buenos_Aires';
+  const tenantConfig = {
+    provider: tenant.whatsapp_provider || 'meta',
+    whatsappPhoneNumberId: tenant.whatsapp_phone_number_id,
+    whatsappAccessToken: tenant.whatsapp_access_token,
+    wasender_api_key: tenant.wasender_api_key,
+  };
   const now = new Date();
 
   // Determine which day to report
@@ -302,7 +308,7 @@ async function handleDailyReportRequest(phone, tenantId, reportType) {
       day: 'numeric', 
       month: 'long' 
     });
-    await sendTextMessage(phone, `📊 Reporte diario - ${dayLabel}\n\nNo hay turnos programados para este día.`);
+    await sendTextMessage(phone, `📊 Reporte diario - ${dayLabel}\n\nNo hay turnos programados para este día.`, tenantConfig);
     return;
   }
 
@@ -369,7 +375,7 @@ async function handleDailyReportRequest(phone, tenantId, reportType) {
   });
 
   const { sendTextMessage } = require('../services/whatsapp');
-  await sendTextMessage(phone, report);
+  await sendTextMessage(phone, report, tenantConfig);
 
   logger.info({ phone, tenantId, reportType, count: appointments.length }, '[Webhook] Daily report sent');
 }

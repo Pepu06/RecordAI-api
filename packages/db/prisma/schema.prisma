@@ -47,7 +47,8 @@ model Tenant {
   whatsappProvider       String?  @default("meta")
   whatsappPhoneNumberId  String?
   whatsappAccessToken    String?
-  wasenderToken          String?
+  wasender_api_key       String?
+  wasenderConnected      Boolean  @default(false)
   businessName           String?
   timezone               String?  @default("America/Argentina/Buenos_Aires")
   reminderType           String?  @default("day_before")

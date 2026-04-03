@@ -6,7 +6,7 @@ const { formatTime } = require('../utils/datetime');
 async function sendFollowUp({ appointmentId }) {
   const { data: appointment } = await supabase
     .from('appointments')
-    .select('*, contact:contacts(*), service:services(*), tenant:tenants(timezone, time_format)')
+    .select('*, contact:contacts(*), service:services(*), tenant:tenants(timezone, time_format, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key)')
     .eq('id', appointmentId)
     .maybeSingle();
 
@@ -15,9 +15,9 @@ async function sendFollowUp({ appointmentId }) {
     return;
   }
 
-  // Skip if already confirmed or cancelled (allow notified and pending)
-  if (!['pending', 'sin_enviar', 'notified'].includes(appointment.status)) {
-    logger.info({ appointmentId, status: appointment.status }, 'Skipping follow-up, already responded');
+  // Send follow-up only for pending appointments
+  if (appointment.status !== 'pending') {
+    logger.info({ appointmentId, status: appointment.status }, 'Skipping follow-up, status is not pending');
     return;
   }
 
@@ -34,6 +34,13 @@ async function sendFollowUp({ appointmentId }) {
   const encabezado = 'Seguimiento de turno';
   const mensajeEditable = `Aún no confirmaste tu cita del ${date} ${time}.`;
 
+  const tenantConfig = {
+    provider: appointment.tenant?.whatsapp_provider || 'meta',
+    whatsappPhoneNumberId: appointment.tenant?.whatsapp_phone_number_id,
+    whatsappAccessToken: appointment.tenant?.whatsapp_access_token,
+    wasender_api_key: appointment.tenant?.wasender_api_key,
+  };
+
   await sendTemplate(appointment.contact.phone, 'recordatorio_turno', {
     header: [{ name: 'encabezado', value: encabezado }],
     body: [
@@ -46,7 +53,7 @@ async function sendFollowUp({ appointmentId }) {
       { index: 0, payload: `confirm_${appointmentId}` },
       { index: 1, payload: `cancel_${appointmentId}` },
     ],
-  });
+  }, tenantConfig);
 
   const { error: updateError } = await supabase
     .from('appointments')

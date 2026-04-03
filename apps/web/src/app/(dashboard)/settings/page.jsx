@@ -23,7 +23,7 @@ const DEFAULTS = {
   whatsappProvider:     'meta',
   whatsappPhoneNumberId: '',
   whatsappAccessToken:   '',
-  wasenderToken:         '',
+  wasenderApiKey:        '',
   adminWhatsapp:        '',
   adminAlertsEnabled:   false,
   reportDays:           '1,2,3,4,5',
@@ -72,7 +72,7 @@ export default function SettingsPage() {
       if (d.whatsappProvider    != null) mapped.whatsappProvider    = d.whatsappProvider;
       if (d.whatsappPhoneNumberId != null) mapped.whatsappPhoneNumberId = d.whatsappPhoneNumberId;
       if (d.whatsappAccessToken != null) mapped.whatsappAccessToken = d.whatsappAccessToken;
-      if (d.wasenderToken       != null) mapped.wasenderToken       = d.wasenderToken;
+      if (d.wasenderApiKey      != null) mapped.wasenderApiKey      = d.wasenderApiKey;
       if (d.adminWhatsapp       != null) mapped.adminWhatsapp       = d.adminWhatsapp;
       if (d.adminAlertsEnabled  != null) mapped.adminAlertsEnabled  = d.adminAlertsEnabled;
       if (d.reportDays           != null) mapped.reportDays           = d.reportDays;
@@ -101,7 +101,7 @@ export default function SettingsPage() {
         whatsapp_provider:    settings.whatsappProvider,
         whatsapp_phone_number_id: settings.whatsappPhoneNumberId,
         whatsapp_access_token: settings.whatsappAccessToken,
-        wasender_token:       settings.wasenderToken,
+        wasender_api_key:     settings.wasenderApiKey,
         admin_whatsapp:       settings.adminWhatsapp,
         admin_alerts_enabled: settings.adminAlertsEnabled,
         report_days:             settings.reportDays,
@@ -192,7 +192,7 @@ export default function SettingsPage() {
 
           {settings.whatsappProvider === 'wasender' && (
             <Field label="Wasender Token" hint="Token de API de WasenderAPI">
-              <input className={styles.input} type="password" value={settings.wasenderToken} onChange={e => set('wasenderToken', e.target.value)} placeholder="tu_token_wasender" />
+              <input className={styles.input} type="password" value={settings.wasenderApiKey} onChange={e => set('wasenderApiKey', e.target.value)} placeholder="tu_token_wasender" />
             </Field>
           )}
         </div>

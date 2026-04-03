@@ -89,8 +89,6 @@ async function create(req, res, next) {
     );
     if (reminderDelay > 0) queueJob(JobName.SEND_REMINDER, { delay: reminderDelay });
 
-    queueJob(JobName.SEND_FOLLOW_UP, { delay: 2 * 60 * 60 * 1000 });
-
     return res.status(201).json({ success: true, data: convertKeys(data) });
   } catch (err) { return next(err); }
 }
