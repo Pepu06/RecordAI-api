@@ -4,6 +4,7 @@ const { sendTemplate } = require('../services/whatsapp');
 const { appointmentsQueue } = require('../workers/queue');
 const { JobName } = require('@recordai/shared');
 const { AppError } = require('../errors');
+const { formatTime } = require('../utils/datetime');
 
 const PHONE_REGEX = /\+?\d[\d\s()-]{7,}/;
 
@@ -214,9 +215,22 @@ async function events(req, res, next) {
         allServices = [createdService];
       }
 
-      // Match event description to a service name (case-insensitive substring)
+      // Match event description to a service name
+      // Looks for service in parentheses first: (Servicio nombre)
+      // Falls back to case-insensitive substring match
+      // Returns default service if no match
       function matchService(description = '') {
         if (!description) return allServices[0];
+        
+        // Try to extract service from parentheses: (Service Name)
+        const parenMatch = description.match(/\(([^)]+)\)/);
+        if (parenMatch) {
+          const serviceInParen = parenMatch[1].trim().toLowerCase();
+          const matched = allServices.find(s => s.name.toLowerCase() === serviceInParen);
+          if (matched) return matched;
+        }
+        
+        // Fallback: search for any service name in the description
         const desc = description.toLowerCase();
         return allServices.find(s => desc.includes(s.name.toLowerCase())) || allServices[0];
       }
@@ -332,31 +346,30 @@ async function remindEvent(req, res, next) {
       clientName = extractClientName(event.summary || '');
     }
 
+    // Fetch tenant settings
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('business_name, message_template, timezone, time_format')
+      .eq('id', req.tenantId)
+      .single();
+
     // Format date and time
     const dateObj = start ? new Date(start) : null;
+    const tenantTz = tenant?.timezone || 'America/Argentina/Buenos_Aires';
     const fechaLabel = dateObj
       ? dateObj.toLocaleDateString('es-AR', {
-          timeZone: 'America/Argentina/Buenos_Aires',
+          timeZone: tenantTz,
           weekday: 'long',
           day: '2-digit',
           month: '2-digit',
         })
       : '';
     const horaLabel = dateObj
-      ? dateObj.toLocaleTimeString('es-AR', {
-          timeZone: 'America/Argentina/Buenos_Aires',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
+      ? formatTime(dateObj, {
+          timeZone: tenantTz,
+          timeFormat: tenant?.time_format,
         })
       : '';
-
-    // Fetch tenant settings
-    const { data: tenant } = await supabase
-      .from('tenants')
-      .select('business_name, message_template')
-      .eq('id', req.tenantId)
-      .single();
 
     const encabezado      = tenant?.business_name    || 'RecordAI';
     const mensajeEditable = (tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
@@ -412,7 +425,7 @@ async function createEvent(req, res, next) {
 
       const calEvent = await createCalendarEvent(accessToken, {
         summary:       `${contact.name} [${contact.phone}]`,
-        description:   service.name,
+        description:   `(${service.name})`,
         startDateTime: startDate.toISOString(),
         endDateTime:   endDate.toISOString(),
         attendees,

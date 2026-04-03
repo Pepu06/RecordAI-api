@@ -3,6 +3,7 @@ const { getCalendarEvent, updateEventTitleAndColor, refreshAccessToken } = requi
 const { sendTemplate } = require('../services/whatsapp');
 const env = require('../config/env');
 const logger = require('../config/logger');
+const { formatTime } = require('../utils/datetime');
 
 function verify(req, res) {
   const mode = req.query['hub.mode'];
@@ -76,7 +77,7 @@ async function findPendingAppointmentByPhone(phone) {
     .from('appointments')
     .select('id, tenant_id, google_event_id, user_id, contact_id')
     .eq('contact_id', matchedContact.id)
-    .in('status', ['pending', 'confirmed', 'cancelled'])
+    .in('status', ['pending', 'notified', 'confirmed', 'cancelled'])
     .gte('scheduled_at', windowStart)
     .order('scheduled_at', { ascending: true })
     .limit(1)
@@ -107,6 +108,16 @@ async function processMessage(message, _metadata) {
 
   if (!rawText) {
     logger.info({ from, type: message.type }, '[Webhook] Ignored message without text/button payload');
+    return;
+  }
+
+  // Check if it's a daily report request: "daily_report_<tenantId>_<morning|evening>"
+  const reportMatch = rawText.match(/^daily_report_([^_]+)_(morning|evening)$/);
+  if (reportMatch) {
+    const tenantId = reportMatch[1];
+    const reportType = reportMatch[2];
+    const phone = from.startsWith('+') ? from : `+${from}`;
+    await handleDailyReportRequest(phone, tenantId, reportType);
     return;
   }
 
@@ -174,7 +185,7 @@ async function processMessage(message, _metadata) {
     try {
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('admin_whatsapp, admin_cancel_template, timezone')
+        .select('admin_whatsapp, admin_cancel_template, timezone, time_format')
         .eq('id', appointment.tenant_id)
         .single();
 
@@ -188,7 +199,7 @@ async function processMessage(message, _metadata) {
         const tz = tenant.timezone || 'America/Argentina/Buenos_Aires';
         const apptDate = new Date(fullAppt.scheduled_at);
         const dateStr = apptDate.toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long', day: '2-digit', month: '2-digit' });
-        const timeStr = apptDate.toLocaleTimeString('es-AR', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+        const timeStr = formatTime(apptDate, { timeZone: tz, timeFormat: tenant.time_format });
 
         const rawPhone = fullAppt.contact.phone.replace(/^\+?549?/, '');
 
@@ -260,6 +271,144 @@ async function processMessage(message, _metadata) {
   } catch (err) {
     logger.warn({ err }, 'Failed to update Calendar from webhook');
   }
+}
+
+async function handleDailyReportRequest(phone, tenantId, reportType) {
+  logger.info({ phone, tenantId, reportType }, '[Webhook] Processing daily report request');
+
+  // Verify the phone matches the tenant's admin_whatsapp
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('admin_whatsapp, timezone')
+    .eq('id', tenantId)
+    .maybeSingle();
+
+  if (!tenant || tenant.admin_whatsapp !== phone) {
+    logger.warn({ phone, tenantId }, '[Webhook] Phone does not match tenant admin');
+    return;
+  }
+
+  const tz = tenant.timezone || 'America/Argentina/Buenos_Aires';
+  const now = new Date();
+
+  // Determine which day to report
+  let targetDate;
+  if (reportType === 'morning') {
+    // Morning report: show today's appointments
+    targetDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+  } else {
+    // Evening report: show tomorrow's appointments
+    const localDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    targetDate = new Date(localDate);
+    targetDate.setDate(targetDate.getDate() + 1);
+  }
+
+  // Get start and end of target day in UTC
+  const dayStart = new Date(targetDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(targetDate);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  // Convert to UTC for query
+  const startUTC = new Date(dayStart.toLocaleString('en-US', { timeZone: tz }));
+  const endUTC = new Date(dayEnd.toLocaleString('en-US', { timeZone: tz }));
+
+  // Fetch appointments for the day
+  const { data: appointments, error } = await supabase
+    .from('appointments')
+    .select(`
+      id,
+      scheduled_at,
+      status,
+      notes,
+      contact:contacts(name, phone),
+      service:services(name)
+    `)
+    .eq('tenant_id', tenantId)
+    .gte('scheduled_at', startUTC.toISOString())
+    .lte('scheduled_at', endUTC.toISOString())
+    .order('scheduled_at', { ascending: true });
+
+  if (error) {
+    logger.error({ error: error.message }, '[Webhook] Failed to fetch appointments for daily report');
+    return;
+  }
+
+  if (!appointments || appointments.length === 0) {
+    const { sendTextMessage } = require('../services/whatsapp');
+    const dayLabel = targetDate.toLocaleDateString('es-AR', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long' 
+    });
+    await sendTextMessage(phone, `📊 Reporte diario - ${dayLabel}\n\nNo hay turnos programados para este día.`);
+    return;
+  }
+
+  // Format the report
+  const dayLabel = targetDate.toLocaleDateString('es-AR', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long',
+    year: 'numeric'
+  });
+
+  let report = `📊 *Reporte diario - ${dayLabel}*\n\n`;
+  report += `Total de turnos: ${appointments.length}\n\n`;
+
+  // Group by status
+  const statusEmoji = {
+    pending: '⏳',
+    notified: '📧',
+    confirmed: '✅',
+    cancelled: '❌'
+  };
+
+  const statusLabels = {
+    pending: 'Pendiente',
+    notified: 'Notificado',
+    confirmed: 'Confirmado',
+    cancelled: 'Cancelado'
+  };
+
+  appointments.forEach((appt, idx) => {
+    const timeLabel = new Date(appt.scheduled_at).toLocaleTimeString('es-AR', {
+      timeZone: tz,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    const emoji = statusEmoji[appt.status] || '•';
+    const statusLabel = statusLabels[appt.status] || appt.status;
+
+    report += `${idx + 1}. ${emoji} ${timeLabel} - ${appt.contact.name}\n`;
+    report += `   📞 ${appt.contact.phone}\n`;
+    report += `   💼 ${appt.service.name}\n`;
+    report += `   📌 Estado: ${statusLabel}\n`;
+    if (appt.notes) {
+      report += `   📝 ${appt.notes}\n`;
+    }
+    report += `\n`;
+  });
+
+  // Add summary by status
+  const statusCount = {};
+  appointments.forEach(appt => {
+    statusCount[appt.status] = (statusCount[appt.status] || 0) + 1;
+  });
+
+  report += `\n📈 *Resumen por estado:*\n`;
+  Object.entries(statusCount).forEach(([status, count]) => {
+    const emoji = statusEmoji[status] || '•';
+    const label = statusLabels[status] || status;
+    report += `${emoji} ${label}: ${count}\n`;
+  });
+
+  const { sendTextMessage } = require('../services/whatsapp');
+  await sendTextMessage(phone, report);
+
+  logger.info({ phone, tenantId, reportType, count: appointments.length }, '[Webhook] Daily report sent');
 }
 
 module.exports = { verify, receive };

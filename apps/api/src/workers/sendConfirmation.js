@@ -1,6 +1,7 @@
 const { supabase } = require('@recordai/db');
 const { sendTemplate } = require('../services/whatsapp');
 const logger = require('../config/logger');
+const { formatTime } = require('../utils/datetime');
 
 async function sendConfirmation({ appointmentId }) {
   const { data: appointment } = await supabase
@@ -28,9 +29,7 @@ async function sendConfirmation({ appointmentId }) {
   });
   
   // Formato hora: "10:00"
-  const horaLabel = dateObj.toLocaleTimeString('es-AR', {
-    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
-  });
+  const horaLabel = formatTime(dateObj, { timeZone: tz, timeFormat: appointment.tenant?.time_format });
 
   // Determinar texto del recordatorio basado en reminder_type
   const reminderType = appointment.tenant?.reminder_type || 'day_before';
@@ -47,7 +46,10 @@ async function sendConfirmation({ appointmentId }) {
     ],
   });
 
-  await supabase.from('appointments').update({ confirmation_sent_at: new Date().toISOString() }).eq('id', appointmentId);
+  await supabase.from('appointments').update({ 
+    confirmation_sent_at: new Date().toISOString(),
+    status: 'notified'
+  }).eq('id', appointmentId);
 
   await supabase.from('message_logs').insert({
     tenant_id:      appointment.tenant_id,
@@ -57,7 +59,7 @@ async function sendConfirmation({ appointmentId }) {
     status:         'sent',
   });
 
-  logger.info({ appointmentId }, 'Confirmation sent via confirmacion_turno template');
+  logger.info({ appointmentId }, 'Confirmation sent via confirmacion_turno template, status changed to notified');
 }
 
 module.exports = { sendConfirmation };

@@ -1,11 +1,12 @@
 const { supabase } = require('@recordai/db');
-const { sendInteractiveButtons } = require('../services/whatsapp');
+const { sendTemplate } = require('../services/whatsapp');
 const logger = require('../config/logger');
+const { formatTime } = require('../utils/datetime');
 
 async function sendFollowUp({ appointmentId }) {
   const { data: appointment } = await supabase
     .from('appointments')
-    .select('*, contact:contacts(*), service:services(*)')
+    .select('*, contact:contacts(*), service:services(*), tenant:tenants(timezone, time_format)')
     .eq('id', appointmentId)
     .maybeSingle();
 
@@ -14,25 +15,38 @@ async function sendFollowUp({ appointmentId }) {
     return;
   }
 
-  if (appointment.status !== 'pending') {
+  // Skip if already confirmed or cancelled (allow notified and pending)
+  if (!['pending', 'notified'].includes(appointment.status)) {
     logger.info({ appointmentId, status: appointment.status }, 'Skipping follow-up, already responded');
     return;
   }
 
-  const date = new Date(appointment.scheduled_at).toLocaleString('es-AR', {
-    dateStyle: 'full',
-    timeStyle: 'short',
+  const tz = appointment.tenant?.timezone || 'America/Argentina/Buenos_Aires';
+  const dateObj = new Date(appointment.scheduled_at);
+  const date = dateObj.toLocaleDateString('es-AR', {
+    timeZone: tz,
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
   });
+  const time = formatTime(dateObj, { timeZone: tz, timeFormat: appointment.tenant?.time_format });
 
-  const body =
-    `Hola ${appointment.contact.name}! 👋\n\n` +
-    `Aún no confirmaste tu cita del ${date}.\n` +
-    `¿Vas a poder asistir?`;
+  const encabezado = 'Seguimiento de turno';
+  const mensajeEditable = `Aún no confirmaste tu cita del ${date} ${time}.`;
 
-  await sendInteractiveButtons(appointment.contact.phone, body, [
-    { id: 'confirm', title: '✅ Confirmar' },
-    { id: 'cancel',  title: '❌ Cancelar'  },
-  ]);
+  await sendTemplate(appointment.contact.phone, 'recordatorio_turno', {
+    header: [{ name: 'encabezado', value: encabezado }],
+    body: [
+      { name: 'nombre_cliente', value: appointment.contact.name || 'Cliente' },
+      { name: 'mensaje_editable', value: mensajeEditable },
+      { name: 'fecha', value: date },
+      { name: 'hora', value: time },
+    ],
+    buttons: [
+      { index: 0, payload: `confirm_${appointmentId}` },
+      { index: 1, payload: `cancel_${appointmentId}` },
+    ],
+  });
 
   logger.info({ appointmentId }, 'Follow-up sent');
 }

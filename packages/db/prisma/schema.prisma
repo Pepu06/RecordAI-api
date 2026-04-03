@@ -15,10 +15,9 @@ enum UserRole {
 
 enum AppointmentStatus {
   pending
+  notified
   confirmed
   cancelled
-  completed
-  no_show
 }
 
 enum MessageDirection {
@@ -47,6 +46,16 @@ model Tenant {
   plan                   String   @default("free")
   whatsappPhoneNumberId  String?
   whatsappAccessToken    String?
+  businessName           String?
+  timezone               String?  @default("America/Argentina/Buenos_Aires")
+  reminderType           String?  @default("day_before")
+  reminderTime           String?  @default("10:00")
+  messageTemplate        String?
+  adminWhatsapp          String?
+  adminCancelTemplate    String?
+  reportDays             String?  @default("1,2,3,4,5")
+  reportMorningTime      String?
+  reportEveningTime      String?
   createdAt              DateTime @default(now())
 
   users             User[]

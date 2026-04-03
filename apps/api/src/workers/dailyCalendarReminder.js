@@ -1,81 +1,113 @@
 const cron = require('node-cron');
 const { supabase } = require('@recordai/db');
-const { getTodayCalendarEvents, refreshAccessToken } = require('../services/google');
-const { sendTextMessage } = require('../services/whatsapp');
+const { sendTemplate } = require('../services/whatsapp');
 const logger = require('../config/logger');
-const env = require('../config/env');
+const { formatTime } = require('../utils/datetime');
 
-const PHONE_REGEX = /\+\d[\d\s()-]{7,}/;
+function getReminderDateTimeUTC(scheduledAt, timezone, reminderType, reminderTime) {
+  const [hh, mm] = (reminderTime || '10:00').split(':').map(Number);
+  const appt = new Date(scheduledAt);
+  const localDateStr = appt.toLocaleDateString('en-CA', { timeZone: timezone || 'UTC' });
+  let [year, month, day] = localDateStr.split('-').map(Number);
+  if (reminderType === 'day_before') day -= 1;
 
-async function getValidToken(user) {
-  let { google_access_token: accessToken, google_refresh_token: refreshToken } = user;
-
-  const events = await getTodayCalendarEvents(accessToken);
-  if (events === null && refreshToken) {
-    try {
-      accessToken = await refreshAccessToken(refreshToken);
-      await supabase.from('users').update({ google_access_token: accessToken }).eq('id', user.id);
-    } catch {
-      return null;
-    }
-  } else if (events === null) {
-    return null;
-  }
-
-  return accessToken;
+  const reminderAsUTC = new Date(Date.UTC(year, month - 1, day, hh, mm, 0));
+  const localMs = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: timezone || 'UTC' })).getTime();
+  const utcMs = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: 'UTC' })).getTime();
+  return new Date(reminderAsUTC.getTime() + (utcMs - localMs));
 }
+
+
 
 async function runDailyReminders() {
   logger.info('Running daily calendar reminders...');
 
-  const { data: users, error } = await supabase
-    .from('users')
-    .select('id, google_access_token, google_refresh_token')
-    .not('google_access_token', 'is', null);
+  const now = new Date();
+
+  // Pull near-future and recent appointments; we'll pick exact due reminders in code
+  const windowStart = new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString();
+  const windowEnd = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString();
+
+  const { data: appointments, error } = await supabase
+    .from('appointments')
+    .select(`
+      id,
+      tenant_id,
+      contact_id,
+      service_id,
+      scheduled_at,
+      status,
+      reminder_sent_at,
+      google_event_id,
+      contact:contacts(name, phone),
+      service:services(name),
+      tenant:tenants(business_name, message_template, timezone, time_format, reminder_type, reminder_time)
+    `)
+    .in('status', ['pending', 'notified', 'confirmed'])
+    .is('reminder_sent_at', null)
+    .gte('scheduled_at', windowStart)
+    .lte('scheduled_at', windowEnd);
 
   if (error) {
-    logger.error({ err: error.message }, 'Failed to fetch users for daily reminders');
+    logger.error({ err: error.message }, 'Failed to fetch appointments for daily reminders');
     return;
   }
 
-  for (const user of users || []) {
-    const accessToken = await getValidToken(user);
-    if (!accessToken) {
-      logger.info({ userId: user.id }, 'Skipping user — invalid Google token');
-      continue;
-    }
+  for (const appt of appointments || []) {
+    if (!appt?.contact?.phone) continue;
 
-    const events = await getTodayCalendarEvents(accessToken);
-    if (!events?.length) continue;
+    const tz = appt.tenant?.timezone || 'America/Argentina/Buenos_Aires';
+    const timeFormat = appt.tenant?.time_format || '24h';
+    const reminderType = appt.tenant?.reminder_type || 'day_before';
+    const reminderTime = appt.tenant?.reminder_time || '10:00';
 
-    for (const event of events) {
-      const title = event.summary || '';
-      const match = title.match(PHONE_REGEX);
-      if (!match) continue;
+    const target = getReminderDateTimeUTC(appt.scheduled_at, tz, reminderType, reminderTime);
+    const deltaMs = Math.abs(now.getTime() - target.getTime());
+    if (deltaMs > 60 * 1000) continue;
 
-      const phone = match[0].replace(/[\s()-]/g, '');
-      const token = Buffer.from(`${user.id}:${event.id}`).toString('base64url');
-      const confirmUrl = `${env.BASE_URL}/turno?token=${token}`;
+    const dateObj = new Date(appt.scheduled_at);
+    const fechaLabel = dateObj.toLocaleDateString('es-AR', {
+      timeZone: tz,
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit',
+    });
+    const horaLabel = formatTime(dateObj, { timeZone: tz, timeFormat });
 
-      const start = event.start?.dateTime || `${event.start?.date}T12:00:00`;
-      const dateLabel = new Date(start).toLocaleString('es-AR', {
-        timeZone:  'America/Argentina/Buenos_Aires',
-        dateStyle: 'full',
-        timeStyle: 'short',
+    const encabezado = (appt.tenant?.business_name || 'RecordAI').slice(0, 40);
+    const mensajeEditable = (appt.tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
+
+    try {
+      await sendTemplate(appt.contact.phone, 'recordatorio_turno', {
+        header: [{ name: 'encabezado', value: encabezado }],
+        body: [
+          { name: 'nombre_cliente', value: appt.contact.name || 'Cliente' },
+          { name: 'mensaje_editable', value: mensajeEditable },
+          { name: 'fecha', value: fechaLabel },
+          { name: 'hora', value: horaLabel },
+        ],
+        buttons: [
+          { index: 0, payload: `confirm_${appt.id}` },
+          { index: 1, payload: `cancel_${appt.id}` },
+        ],
       });
 
-      const message =
-        `Hola! 👋 Te recordamos tu cita de hoy:\n\n` +
-        `📅 *${title}*\n` +
-        `🕐 ${dateLabel}\n\n` +
-        `Por favor confirmá o cancelá tu turno:\n${confirmUrl}`;
+      await supabase
+        .from('appointments')
+        .update({ reminder_sent_at: new Date().toISOString() })
+        .eq('id', appt.id);
 
-      try {
-        await sendTextMessage(phone, message);
-        logger.info({ phone, eventId: event.id }, 'Daily reminder sent');
-      } catch (err) {
-        logger.warn({ phone, eventId: event.id, err: err.message }, 'Failed to send reminder');
-      }
+      await supabase.from('message_logs').insert({
+        tenant_id: appt.tenant_id,
+        appointment_id: appt.id,
+        type: 'reminder',
+        direction: 'outbound',
+        status: 'sent',
+      });
+
+      logger.info({ appointmentId: appt.id }, 'Daily reminder sent via recordatorio_turno');
+    } catch (err) {
+      logger.warn({ appointmentId: appt.id, err: err.message }, 'Failed to send daily reminder');
     }
   }
 
@@ -83,9 +115,9 @@ async function runDailyReminders() {
 }
 
 function startDailyReminderCron() {
-  // Run at 8:00am Argentina time (UTC-3 = 11:00 UTC)
-  cron.schedule('0 11 * * *', runDailyReminders, { timezone: 'UTC' });
-  logger.info('Daily calendar reminder cron scheduled (8am AR / 11am UTC)');
+  // Run at minute 0 of every hour; reminders use tenant-configured reminder_time
+  cron.schedule('0 * * * *', runDailyReminders, { timezone: 'UTC' });
+  logger.info('Daily calendar reminder cron scheduled (hourly)');
 }
 
 module.exports = { startDailyReminderCron, runDailyReminders };
