@@ -9,6 +9,7 @@
 }
 
 .title {
+  font-family: var(--font-display);
   font-size: 28px;
   font-weight: 800;
   color: var(--text);
@@ -26,7 +27,7 @@
   gap: 8px;
   padding: 10px 20px;
   background: var(--accent);
-  color: #0e1117;
+  color: #fff;
   border: none;
   border-radius: var(--radius-pill);
   font-size: 13px;
@@ -265,15 +266,15 @@
 
 .dayNumberToday {
   background: var(--accent);
-  color: #0e1117;
+  color: #fff;
   font-weight: 800;
-  box-shadow: 0 0 12px rgba(14,165,255,0.5);
+  box-shadow: 0 0 12px rgba(124, 110, 248, 0.5);
   animation: pulse-glow 2.5s ease-in-out infinite;
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(14,165,255,0); }
-  50% { box-shadow: 0 0 16px 4px rgba(14,165,255,0.25); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 110, 248, 0); }
+  50% { box-shadow: 0 0 16px 4px rgba(124, 110, 248, 0.25); }
 }
 
 /* Event pills */
@@ -500,7 +501,7 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.btnRemind:hover:not(:disabled) { box-shadow: var(--accent-glow-sm); background: rgba(14,165,255,0.18); }
+.btnRemind:hover:not(:disabled) { box-shadow: var(--accent-glow-sm); background: rgba(124, 110, 248, 0.18); }
 .btnRemind:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Event popup ── */
@@ -616,7 +617,7 @@
   width: calc(100% - 40px);
   padding: 12px;
   background: var(--accent);
-  color: #0e1117;
+  color: #fff;
   border: none;
   border-radius: var(--radius-pill);
   font-size: 13px;

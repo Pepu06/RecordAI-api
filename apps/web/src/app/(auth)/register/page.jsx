@@ -49,7 +49,7 @@ export default function RegisterPage() {
         const res = await api.post('/auth/google', { code });
         saveAuth(res.data.token);
         router.push('/dashboard');
-      } catch (err) {
+      } catch {
         setError('Error al registrarse con Google');
       } finally {
         setLoading(false);
@@ -60,69 +60,119 @@ export default function RegisterPage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.brand}>
-          <div className={styles.brandMark}>R</div>
+      {/* ── Decorative panel ── */}
+      <div className={styles.decorPanel}>
+        <div className={styles.decorContent}>
+          <div className={styles.decorBrand}>
+            <div className={styles.decorMark}>RA</div>
+            <span className={styles.decorBrandName}>RecordAI</span>
+          </div>
+          <h1 className={styles.decorHeading}>
+            Empezá gratis<br />
+            <span className={styles.decorHeadingAccent}>en minutos.</span>
+          </h1>
+          <p className={styles.decorSubtitle}>
+            Conectá tu negocio con WhatsApp y Google Calendar. Automatizá confirmaciones y nunca más pierdas una cita.
+          </p>
+          <div className={styles.decorFeatures}>
+            {[
+              'Sin tarjeta de crédito requerida',
+              'Configuración en menos de 5 minutos',
+              'Soporte para múltiples usuarios',
+            ].map((text, i) => (
+              <div key={i} className={styles.decorFeature}>
+                <div className={styles.decorFeatureIcon}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+                <span className={styles.decorFeatureText}>{text}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <h1 className={styles.title}>Crear cuenta</h1>
-        <p className={styles.subtitle}>Empezá a usar RecordAI hoy</p>
+      </div>
 
-        <div className={styles.form}>
-          <button
-            type="button"
-            className={styles.googleBtn}
-            onClick={() => googleLogin()}
-            disabled={loading}
-          >
-            <GoogleIcon />
-            Registrarse con Google
-          </button>
+      {/* ── Form panel ── */}
+      <div className={styles.formPanel}>
+        <div className={styles.card}>
+          <div className={styles.mobileBrand}>
+            <div className={styles.mobileMark}>RA</div>
+            <span className={styles.mobileBrandName}>RecordAI</span>
+          </div>
 
-          <div className={styles.divider}>o registrate con email</div>
+          <h2 className={styles.title}>Crear cuenta</h2>
+          <p className={styles.subtitle}>Empezá a usar RecordAI hoy, es gratis</p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
-            <input
-              type="text"
-              placeholder="Nombre del negocio"
-              value={form.tenantName}
-              onChange={(e) => setForm({ ...form, tenantName: e.target.value })}
-              className={styles.input}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Slug (ej: mi-negocio)"
-              value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s/g, '-') })}
-              className={styles.input}
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className={styles.input}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className={styles.input}
-              required
-            />
-            {error && <p className={styles.error}>{error}</p>}
-            <button type="submit" className={styles.button} disabled={loading}>
-              {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+          <div className={styles.form}>
+            <button
+              type="button"
+              className={styles.googleBtn}
+              onClick={() => googleLogin()}
+              disabled={loading}
+            >
+              <GoogleIcon />
+              Registrarse con Google
             </button>
-          </form>
-        </div>
 
-        <p className={styles.link}>
-          ¿Ya tenés cuenta? <a href="/login">Ingresá</a>
-        </p>
+            <div className={styles.divider}>o registrate con email</div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Nombre del negocio</label>
+                <input
+                  type="text"
+                  placeholder="Mi Clínica"
+                  value={form.tenantName}
+                  onChange={(e) => setForm({ ...form, tenantName: e.target.value })}
+                  className={styles.input}
+                  required
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Slug (identificador único)</label>
+                <input
+                  type="text"
+                  placeholder="mi-clinica"
+                  value={form.slug}
+                  onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s/g, '-') })}
+                  className={styles.input}
+                  required
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Email</label>
+                <input
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className={styles.input}
+                  required
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Contraseña</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className={styles.input}
+                  required
+                />
+              </div>
+              {error && <p className={styles.error}>{error}</p>}
+              <button type="submit" className={styles.button} disabled={loading}>
+                {loading ? 'Creando cuenta...' : 'Crear cuenta gratis'}
+              </button>
+            </form>
+          </div>
+
+          <p className={styles.link}>
+            ¿Ya tenés cuenta? <a href="/login">Ingresá</a>
+          </p>
+        </div>
       </div>
     </div>
   );

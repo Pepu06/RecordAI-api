@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -7,55 +7,61 @@
 }
 
 :root {
-  /* ── Anthracite foundation ── */
-  --bg:        #0e1117;
-  --surface:   #161b24;
-  --surface-2: #1d2332;
-  --surface-3: #242c3d;
-  --surface-4: #2c3548;
+  /* ── Deep Cosmos Foundation ── */
+  --bg:        #04060F;
+  --surface:   #080C1A;
+  --surface-2: #0D1226;
+  --surface-3: #131930;
+  --surface-4: #1A2240;
 
-  --border:        rgba(255, 255, 255, 0.07);
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-hover:  rgba(255, 255, 255, 0.14);
+  --border:        rgba(110, 130, 200, 0.11);
+  --border-subtle: rgba(110, 130, 200, 0.055);
+  --border-hover:  rgba(110, 130, 200, 0.24);
 
   /* ── Text ── */
-  --text:   #f0f4ff;
-  --text-2: #94a3b8;
-  --text-3: #4a5568;
+  --text:   #EEF2FF;
+  --text-2: #8B9CC8;
+  --text-3: #3F4F78;
 
-  /* ── Electric blue accent ── */
-  --accent:        #0ea5ff;
-  --accent-2:      #38b8ff;
-  --accent-bg:     rgba(14, 165, 255, 0.1);
-  --accent-border: rgba(14, 165, 255, 0.3);
-  --accent-glow:   0 0 28px rgba(14, 165, 255, 0.35);
-  --accent-glow-sm: 0 0 12px rgba(14, 165, 255, 0.2);
+  /* ── Violet accent system ── */
+  --accent:         #7C6EF8;
+  --accent-2:       #9D91FB;
+  --accent-bg:      rgba(124, 110, 248, 0.10);
+  --accent-border:  rgba(124, 110, 248, 0.30);
+  --accent-glow:    0 0 32px rgba(124, 110, 248, 0.45);
+  --accent-glow-sm: 0 0 14px rgba(124, 110, 248, 0.28);
+
+  /* ── Gradient accent (used for logos, CTAs, decorative elements) ── */
+  --gradient:         linear-gradient(135deg, #8B5CF6 0%, #6366F1 40%, #3B82F6 100%);
+  --gradient-soft:    linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(59,130,246,0.08) 100%);
+  --gradient-border:  linear-gradient(135deg, rgba(139,92,246,0.5), rgba(59,130,246,0.4));
+  --gradient-text:    linear-gradient(135deg, #A78BFA 0%, #60A5FA 100%);
 
   /* ── Status ── */
-  --yellow:    #f59e0b;
-  --yellow-bg: rgba(245, 158, 11, 0.12);
-  --yellow-border: rgba(245, 158, 11, 0.28);
+  --yellow:        #F59E0B;
+  --yellow-bg:     rgba(245, 158, 11, 0.10);
+  --yellow-border: rgba(245, 158, 11, 0.25);
 
-  --red:    #ef4444;
-  --red-bg: rgba(239, 68, 68, 0.12);
-  --red-border: rgba(239, 68, 68, 0.28);
+  --red:        #F87171;
+  --red-bg:     rgba(248, 113, 113, 0.10);
+  --red-border: rgba(248, 113, 113, 0.25);
 
-  --green:    #22c55e;
-  --green-bg: rgba(34, 197, 94, 0.12);
-  --green-border: rgba(34, 197, 94, 0.28);
+  --green:        #34D399;
+  --green-bg:     rgba(52, 211, 153, 0.10);
+  --green-border: rgba(52, 211, 153, 0.25);
 
-  --orange:    #f97316;
-  --orange-bg: rgba(249, 115, 22, 0.12);
+  --orange:    #FB923C;
+  --orange-bg: rgba(251, 146, 60, 0.10);
 
-  --blue:    #3b82f6;
-  --blue-bg: rgba(59, 130, 246, 0.12);
+  --blue:    #60A5FA;
+  --blue-bg: rgba(96, 165, 250, 0.10);
 
-  --gray:    #64748b;
-  --gray-bg: rgba(100, 116, 139, 0.12);
+  --gray:    #64748B;
+  --gray-bg: rgba(100, 116, 139, 0.10);
 
   /* ── Typography ── */
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* ── Radius ── */
   --radius-xs:  4px;
@@ -67,14 +73,14 @@
   --radius-pill: 999px;
 
   /* ── Shadows ── */
-  --shadow:    0 4px 24px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.7);
-  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --shadow:    0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 24px 80px rgba(0, 0, 0, 0.8);
+  --shadow-sm: 0 2px 16px rgba(0, 0, 0, 0.45);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
   /* ── Glass ── */
-  --glass-bg:     rgba(22, 27, 36, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg:     rgba(8, 12, 26, 0.85);
+  --glass-border: rgba(110, 130, 200, 0.10);
 }
 
 html, body { height: 100%; }
@@ -91,16 +97,23 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
-::selection { background: var(--accent); color: #0e1117; }
+::selection {
+  background: rgba(124, 110, 248, 0.35);
+  color: var(--text);
+}
 ::placeholder { color: var(--text-3); }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 4px; }
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 4px;
+}
 ::-webkit-scrollbar-thumb:hover { background: var(--surface-4); }
 
+/* ── Animations ── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -110,17 +123,27 @@ a { color: inherit; text-decoration: none; }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 255, 0); }
-  50%       { box-shadow: 0 0 16px 4px rgba(14, 165, 255, 0.25); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 110, 248, 0); }
+  50%       { box-shadow: 0 0 20px 6px rgba(124, 110, 248, 0.22); }
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
 }
 
 /* ── Global spinner ── */
@@ -128,8 +151,8 @@ a { color: inherit; text-decoration: none; }
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2.5px solid rgba(14, 165, 255, 0.15);
-  border-top-color: #0ea5ff;
+  border: 2.5px solid rgba(124, 110, 248, 0.15);
+  border-top-color: var(--accent);
   animation: spin 0.75s linear infinite;
 }
 
@@ -139,4 +162,12 @@ a { color: inherit; text-decoration: none; }
   justify-content: center;
   min-height: calc(100vh - 72px - 64px);
   width: 100%;
+}
+
+/* ── Gradient text utility ── */
+.gradient-text {
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

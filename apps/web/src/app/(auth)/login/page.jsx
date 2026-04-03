@@ -18,6 +18,38 @@ function GoogleIcon() {
   );
 }
 
+const features = [
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.02 12 19.79 19.79 0 011.07 3.4 2 2 0 013.05 1h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 15.92z"/>
+      </svg>
+    ),
+    text: 'Confirmaciones de citas por WhatsApp',
+  },
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    ),
+    text: 'Sincronización con Google Calendar',
+  },
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 20V10"/>
+        <path d="M12 20V4"/>
+        <path d="M6 20v-6"/>
+      </svg>
+    ),
+    text: 'Panel de métricas en tiempo real',
+  },
+];
+
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -49,7 +81,7 @@ export default function LoginPage() {
         const res = await api.post('/auth/google', { code });
         saveAuth(res.data.token);
         router.push('/dashboard');
-      } catch (err) {
+      } catch {
         setError('Error al iniciar sesión con Google');
       } finally {
         setLoading(false);
@@ -60,53 +92,92 @@ export default function LoginPage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.brand}>
-          <div className={styles.brandMark}>R</div>
+      {/* ── Decorative left panel ── */}
+      <div className={styles.decorPanel}>
+        <div className={styles.decorContent}>
+          <div className={styles.decorBrand}>
+            <div className={styles.decorMark}>RA</div>
+            <span className={styles.decorBrandName}>RecordAI</span>
+          </div>
+
+          <h1 className={styles.decorHeading}>
+            Tus citas,<br />
+            <span className={styles.decorHeadingAccent}>automatizadas.</span>
+          </h1>
+          <p className={styles.decorSubtitle}>
+            Confirmaciones por WhatsApp, recordatorios automáticos y seguimiento de citas en un solo lugar.
+          </p>
+
+          <div className={styles.decorFeatures}>
+            {features.map((f, i) => (
+              <div key={i} className={styles.decorFeature}>
+                <div className={styles.decorFeatureIcon}>{f.icon}</div>
+                <span className={styles.decorFeatureText}>{f.text}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <h1 className={styles.title}>Bienvenido</h1>
-        <p className={styles.subtitle}>Ingresá a tu cuenta de RecordAI</p>
+      </div>
 
-        <div className={styles.form}>
-          <button
-            type="button"
-            className={styles.googleBtn}
-            onClick={() => googleLogin()}
-            disabled={loading}
-          >
-            <GoogleIcon />
-            Continuar con Google
-          </button>
+      {/* ── Form panel ── */}
+      <div className={styles.formPanel}>
+        <div className={styles.card}>
+          {/* Mobile brand (only shown < 900px) */}
+          <div className={styles.mobileBrand}>
+            <div className={styles.mobileMark}>RA</div>
+            <span className={styles.mobileBrandName}>RecordAI</span>
+          </div>
 
-          <div className={styles.divider}>o continúa con email</div>
+          <h2 className={styles.title}>Bienvenido de vuelta</h2>
+          <p className={styles.subtitle}>Ingresá a tu cuenta para continuar</p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
-            <input
-              type="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className={styles.input}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className={styles.input}
-              required
-            />
-            {error && <p className={styles.error}>{error}</p>}
-            <button type="submit" className={styles.button} disabled={loading}>
-              {loading ? 'Ingresando...' : 'Ingresar'}
+          <div className={styles.form}>
+            <button
+              type="button"
+              className={styles.googleBtn}
+              onClick={() => googleLogin()}
+              disabled={loading}
+            >
+              <GoogleIcon />
+              Continuar con Google
             </button>
-          </form>
-        </div>
 
-        <p className={styles.link}>
-          ¿No tenés cuenta? <a href="/register">Registrate</a>
-        </p>
+            <div className={styles.divider}>o continúa con email</div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Email</label>
+                <input
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className={styles.input}
+                  required
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Contraseña</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className={styles.input}
+                  required
+                />
+              </div>
+              {error && <p className={styles.error}>{error}</p>}
+              <button type="submit" className={styles.button} disabled={loading}>
+                {loading ? 'Ingresando...' : 'Ingresar'}
+              </button>
+            </form>
+          </div>
+
+          <p className={styles.link}>
+            ¿No tenés cuenta? <a href="/register">Registrate gratis</a>
+          </p>
+        </div>
       </div>
     </div>
   );

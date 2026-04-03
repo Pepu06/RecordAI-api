@@ -15,7 +15,7 @@ const STATUS_META = {
 };
 
 function getStatusMeta(status) {
-  return STATUS_META[status] || { label: 'Sin enviar', color: '#0ea5ff' };
+  return STATUS_META[status] || { label: 'Sin enviar', color: '#7C6EF8' };
 }
 
 function buildMonth(date) {
@@ -347,7 +347,7 @@ export default function CalendarPage() {
         <div className={styles.popupBackdrop} onClick={() => setShowCreate(false)}>
           <div className={styles.popup} onClick={e => e.stopPropagation()}>
             <div className={styles.popupHeader}>
-              <div className={styles.popupAccent} style={{ background: '#0ea5ff' }} />
+              <div className={styles.popupAccent} style={{ background: '#7C6EF8' }} />
               <h3 className={styles.popupTitle}>Nueva cita</h3>
               <button className={styles.popupClose} onClick={() => setShowCreate(false)}>✕</button>
             </div>
