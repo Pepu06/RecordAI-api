@@ -52,7 +52,6 @@ model Tenant {
   reminderTime           String?  @default("10:00")
   messageTemplate        String?
   adminWhatsapp          String?
-  adminCancelTemplate    String?
   reportDays             String?  @default("1,2,3,4,5")
   reportMorningTime      String?
   reportEveningTime      String?

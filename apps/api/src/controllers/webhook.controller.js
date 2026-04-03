@@ -185,7 +185,7 @@ async function processMessage(message, _metadata) {
     try {
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('admin_whatsapp, admin_cancel_template, timezone, time_format')
+        .select('admin_whatsapp, timezone, time_format')
         .eq('id', appointment.tenant_id)
         .single();
 
@@ -203,7 +203,8 @@ async function processMessage(message, _metadata) {
 
         const rawPhone = fullAppt.contact.phone.replace(/^\+?549?/, '');
 
-        const templateName = tenant.admin_cancel_template || env.WHATSAPP_TEMPLATE_CANCEL_ALERT;
+        // Always use the default cancellation template
+        const templateName = 'admin_cancelacion';
         const adminNumbers = tenant.admin_whatsapp.split(',').map(n => n.trim()).filter(Boolean);
 
         for (const adminPhone of adminNumbers) {

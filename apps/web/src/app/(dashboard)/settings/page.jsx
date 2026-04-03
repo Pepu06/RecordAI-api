@@ -27,7 +27,6 @@ const DEFAULTS = {
   adminDailyReportTime: '08:00',
   reminderType:         'day_before',
   reminderTime:         '10:00',
-  adminCancelTemplate:  'admin_cancelacion',
 };
 
 const WEEK_DAYS = [
@@ -73,7 +72,6 @@ export default function SettingsPage() {
       if (d.adminDailyReportTime != null) mapped.adminDailyReportTime = d.adminDailyReportTime;
       if (d.reminderType        != null) mapped.reminderType        = d.reminderType;
       if (d.reminderTime        != null) mapped.reminderTime        = d.reminderTime;
-      if (d.adminCancelTemplate != null) mapped.adminCancelTemplate = d.adminCancelTemplate;
       setSettings(s => ({ ...s, ...mapped }));
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
@@ -99,7 +97,6 @@ export default function SettingsPage() {
         admin_daily_report_time: settings.adminDailyReportTime,
         reminder_type:        settings.reminderType,
         reminder_time:        settings.reminderTime,
-        admin_cancel_template: settings.adminCancelTemplate,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -253,9 +250,6 @@ export default function SettingsPage() {
               <Switch checked={settings.adminAlertsEnabled} onChange={v => set('adminAlertsEnabled', v)} />
               <span className={styles.switchLabel}>{settings.adminAlertsEnabled ? 'Activadas' : 'Desactivadas'}</span>
             </div>
-          </Field>
-          <Field label="Template de cancelación" hint="Nombre del template de WhatsApp que se envía al admin cuando un turno se cancela">
-            <input className={styles.input} value={settings.adminCancelTemplate} onChange={e => set('adminCancelTemplate', e.target.value)} placeholder="admin_cancelacion" />
           </Field>
           <Field label="Días del reporte diario" hint="Qué días de la semana se envía el reporte">
             <div className={styles.dayPicker}>
