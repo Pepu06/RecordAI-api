@@ -49,6 +49,7 @@ Modelar las siguientes entidades con multi-tenancy por tenant_id:
 
 ## Fase 1 — lo que necesito implementado ahora
 
+a
 ### API (Express)
 1. Auth: POST /auth/register, POST /auth/login → JWT
 2. Middleware de autenticación que inyecte tenantId en req
