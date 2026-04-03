@@ -401,6 +401,16 @@ async function remindEvent(req, res, next) {
       } : {}),
     });
 
+    if (appointment?.id) {
+      const { error: updateError } = await supabase
+        .from('appointments')
+        .update({ status: 'pending' })
+        .eq('id', appointment.id)
+        .eq('tenant_id', req.tenantId);
+
+      if (updateError) throw updateError;
+    }
+
     // Mark event as pending (yellow) in Calendar
     updateEventColor(accessToken, eventId, 'pending').catch(() => { });
 

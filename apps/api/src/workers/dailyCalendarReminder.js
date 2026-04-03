@@ -94,7 +94,7 @@ async function runDailyReminders() {
 
       await supabase
         .from('appointments')
-        .update({ reminder_sent_at: new Date().toISOString() })
+        .update({ reminder_sent_at: new Date().toISOString(), status: 'pending' })
         .eq('id', appt.id);
 
       await supabase.from('message_logs').insert({

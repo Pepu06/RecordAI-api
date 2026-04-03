@@ -48,6 +48,17 @@ async function sendReminder({ appointmentId }) {
     ],
   });
 
+  const { error: updateError } = await supabase
+    .from('appointments')
+    .update({ status: 'pending' })
+    .eq('id', appointmentId)
+    .eq('tenant_id', appointment.tenant_id);
+
+  if (updateError) {
+    logger.error({ appointmentId, updateError }, 'Failed to mark appointment as pending after reminder');
+    throw updateError;
+  }
+
   logger.info({ appointmentId }, 'Reminder sent via recordatorio_turno template');
 }
 

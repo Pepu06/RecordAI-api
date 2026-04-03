@@ -48,6 +48,17 @@ async function sendFollowUp({ appointmentId }) {
     ],
   });
 
+  const { error: updateError } = await supabase
+    .from('appointments')
+    .update({ status: 'pending' })
+    .eq('id', appointmentId)
+    .eq('tenant_id', appointment.tenant_id);
+
+  if (updateError) {
+    logger.error({ appointmentId, updateError }, 'Failed to mark appointment as pending after follow-up');
+    throw updateError;
+  }
+
   logger.info({ appointmentId }, 'Follow-up sent');
 }
 
