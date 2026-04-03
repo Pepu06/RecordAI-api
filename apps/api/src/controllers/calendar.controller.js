@@ -386,7 +386,7 @@ async function remindEvent(req, res, next) {
     const mensajeEditable = (tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
 
     // Send approved Meta template: recordatorio_turno
-    await sendTemplate(phone, 'recordatorio_turno', {
+    await sendTemplate(appointment.contact.phone, 'recordatorio_turno', {
       header: [{ name: 'encabezado', value: encabezado }],
       body: [
         { name: 'nombre_cliente', value: clientName },
@@ -395,8 +395,8 @@ async function remindEvent(req, res, next) {
         { name: 'hora', value: horaLabel },
       ],
       buttons: [
-        { index: 0, payload: `confirm_${appt.id}` },
-        { index: 1, payload: `cancel_${appt.id}` },
+        { index: 0, payload: `confirm_${appointment.id}` },
+        { index: 1, payload: `cancel_${appointment.id}` },
       ],
     });
 
