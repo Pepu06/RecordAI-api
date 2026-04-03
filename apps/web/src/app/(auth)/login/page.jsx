@@ -96,7 +96,7 @@ export default function LoginPage() {
       <div className={styles.decorPanel}>
         <div className={styles.decorContent}>
           <div className={styles.decorBrand}>
-            <div className={styles.decorMark}>RA</div>
+            <img src="/logo_recordai.jpg" alt="RecordAI" className={styles.decorMark} />
             <span className={styles.decorBrandName}>RecordAI</span>
           </div>
 
@@ -124,7 +124,7 @@ export default function LoginPage() {
         <div className={styles.card}>
           {/* Mobile brand (only shown < 900px) */}
           <div className={styles.mobileBrand}>
-            <div className={styles.mobileMark}>RA</div>
+            <img src="/logo_recordai.jpg" alt="RecordAI" className={styles.mobileMark} />
             <span className={styles.mobileBrandName}>RecordAI</span>
           </div>
 

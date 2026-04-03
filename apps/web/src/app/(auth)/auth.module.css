@@ -70,15 +70,8 @@
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: var(--gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
-  box-shadow: var(--accent-glow-sm);
+  object-fit: cover;
+  box-shadow: var(--shadow-sm);
 }
 
 .decorBrandName {
@@ -191,15 +184,8 @@
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  background: var(--gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
-  color: #fff;
-  box-shadow: var(--accent-glow-sm);
+  object-fit: cover;
+  box-shadow: var(--shadow-sm);
 }
 
 .mobileBrandName {

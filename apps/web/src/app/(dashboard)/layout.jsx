@@ -88,25 +88,29 @@ export default function DashboardLayout({ children }) {
     router.push('/login');
   }
 
-  const { initials, displayName } = useMemo(() => {
+  const { initials, displayName, businessName, profilePicture } = useMemo(() => {
     try {
       const token = getToken();
-      if (!token) return { initials: 'U', displayName: 'Usuario' };
+      if (!token) return { initials: 'U', displayName: 'Usuario', businessName: 'Mi Negocio', profilePicture: null };
       const payload = JSON.parse(atob(token.split('.')[1]));
       const name = payload.name || payload.email || 'Usuario';
+      const business = payload.businessName || payload.tenantName || 'Mi Negocio';
+      const picture = payload.picture || null;
       const parts = name.split(' ');
       return {
         initials: parts.map(w => w[0]).slice(0, 2).join('').toUpperCase(),
         displayName: parts[0],
+        businessName: business,
+        profilePicture: picture,
       };
-    } catch { return { initials: 'U', displayName: 'Usuario' }; }
+    } catch { return { initials: 'U', displayName: 'Usuario', businessName: 'Mi Negocio', profilePicture: null }; }
   }, []);
 
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
-          <div className={styles.logoMark}>RA</div>
+          <img src="/logo_recordai.jpg" alt="RecordAI" className={styles.logoMark} />
           <div>
             <span className={styles.logoText}>RecordAI</span>
             <span className={styles.logoSub}>Pro</span>
@@ -128,9 +132,13 @@ export default function DashboardLayout({ children }) {
 
         <div className={styles.sidebarBottom}>
           <div className={styles.userRow}>
-            <div className={styles.avatar}>{initials}</div>
+            {profilePicture ? (
+              <img src={profilePicture} alt={businessName} className={styles.avatar} />
+            ) : (
+              <div className={styles.avatar}>{initials}</div>
+            )}
             <div className={styles.userInfo}>
-              <span className={styles.userName}>{displayName}</span>
+              <span className={styles.userName}>{businessName}</span>
               <span className={styles.userRole}>Administrador</span>
             </div>
           </div>

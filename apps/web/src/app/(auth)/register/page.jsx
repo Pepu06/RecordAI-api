@@ -64,7 +64,7 @@ export default function RegisterPage() {
       <div className={styles.decorPanel}>
         <div className={styles.decorContent}>
           <div className={styles.decorBrand}>
-            <div className={styles.decorMark}>RA</div>
+            <img src="/logo_recordai.jpg" alt="RecordAI" className={styles.decorMark} />
             <span className={styles.decorBrandName}>RecordAI</span>
           </div>
           <h1 className={styles.decorHeading}>
@@ -97,7 +97,7 @@ export default function RegisterPage() {
       <div className={styles.formPanel}>
         <div className={styles.card}>
           <div className={styles.mobileBrand}>
-            <div className={styles.mobileMark}>RA</div>
+            <img src="/logo_recordai.jpg" alt="RecordAI" className={styles.mobileMark} />
             <span className={styles.mobileBrandName}>RecordAI</span>
           </div>
 
