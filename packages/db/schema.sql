@@ -3,7 +3,7 @@
 
 -- Enums
 CREATE TYPE user_role          AS ENUM ('owner', 'staff');
-CREATE TYPE appointment_status AS ENUM ('pending', 'confirmed', 'cancelled', 'completed', 'no_show');
+CREATE TYPE appointment_status AS ENUM ('pending', 'confirmed', 'cancelled', 'notified', 'sin_enviar');
 CREATE TYPE message_direction  AS ENUM ('inbound', 'outbound');
 CREATE TYPE message_type       AS ENUM ('confirmation', 'reminder', 'follow_up', 'reply');
 CREATE TYPE message_status     AS ENUM ('sent', 'delivered', 'read', 'failed');

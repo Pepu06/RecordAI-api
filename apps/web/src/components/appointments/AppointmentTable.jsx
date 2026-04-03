@@ -56,11 +56,11 @@ export default function AppointmentTable({ appointments, onStatusChange }) {
                     onChange={(e) => onStatusChange(a.id, e.target.value)}
                     className={styles.select}
                   >
+                    <option value="sin_enviar">Sin enviar</option>
+                    <option value="notified">Notificado</option>
                     <option value="pending">Pendiente</option>
                     <option value="confirmed">Confirmado</option>
                     <option value="cancelled">Cancelado</option>
-                    <option value="completed">Completado</option>
-                    <option value="no_show">No asistió</option>
                   </select>
                 </td>
               </tr>

@@ -312,6 +312,7 @@ async function handleDailyReportRequest(phone, tenantId, reportType) {
 
   // Group by status
   const statusEmoji = {
+    sin_enviar: '🟡',
     pending: '⏳',
     notified: '📧',
     confirmed: '✅',
@@ -319,6 +320,7 @@ async function handleDailyReportRequest(phone, tenantId, reportType) {
   };
 
   const statusLabels = {
+    sin_enviar: 'Sin enviar',
     pending: 'Pendiente',
     notified: 'Notificado',
     confirmed: 'Confirmado',

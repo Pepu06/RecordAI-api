@@ -269,7 +269,7 @@ async function events(req, res, next) {
             service_id: service.id,
             user_id: req.userId,
             scheduled_at: new Date(event.start).toISOString(),
-            status: "Sin enviar",
+            status: 'sin_enviar',
             google_event_id: event.id,
           })
           .select('id, scheduled_at')
@@ -302,7 +302,7 @@ async function updateEventStatus(req, res, next) {
   try {
     const { eventId } = req.params;
     const { status } = req.body;
-    const VALID = ['pending', 'confirmed', 'cancelled', 'completed', 'no_show'];
+    const VALID = ['pending', 'confirmed', 'cancelled', 'notified', 'sin_enviar'];
     if (!VALID.includes(status)) throw new AppError('Estado inválido', 400);
 
     const accessToken = await getValidToken(req.userId);
@@ -426,7 +426,7 @@ async function createEvent(req, res, next) {
         service_id: serviceId,
         user_id: req.userId,
         scheduled_at: new Date(scheduledAt).toISOString(),
-        status: "Sin enviar",
+        status: 'sin_enviar',
         notes,
       })
       .select('*')

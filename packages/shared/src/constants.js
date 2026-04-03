@@ -2,8 +2,8 @@ const AppointmentStatus = Object.freeze({
   PENDING: 'pending',
   CONFIRMED: 'confirmed',
   CANCELLED: 'cancelled',
-  COMPLETED: 'completed',
-  NO_SHOW: 'no_show',
+  NOTIFIED: 'notified',
+  SIN_ENVIAR: 'sin_enviar',
 });
 
 const UserRole = Object.freeze({

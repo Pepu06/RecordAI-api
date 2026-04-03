@@ -15,7 +15,7 @@ async function sendConfirmation({ appointmentId }) {
     return;
   }
 
-  if (appointment.status === 'notified') {
+  if (appointment.status !== 'sin_enviar') {
     logger.info({ appointmentId, status: appointment.status }, 'Skipping confirmation, already processed');
     return;
   }

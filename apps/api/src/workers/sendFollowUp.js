@@ -16,7 +16,7 @@ async function sendFollowUp({ appointmentId }) {
   }
 
   // Skip if already confirmed or cancelled (allow notified and pending)
-  if (!['pending', 'notified'].includes(appointment.status)) {
+  if (!['pending', 'sin_enviar', 'notified'].includes(appointment.status)) {
     logger.info({ appointmentId, status: appointment.status }, 'Skipping follow-up, already responded');
     return;
   }
