@@ -50,13 +50,26 @@
   width: 72px;
 }
 
+/* ── Sidebar header (logo + toggle) ── */
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  min-width: 0;
+}
+
+.sidebar.collapsed .sidebarHeader {
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
 /* Collapse toggle button */
 .collapseBtn {
-  position: absolute;
-  top: 24px;
-  right: 12px;
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
   border-radius: 6px;
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -65,20 +78,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s, opacity 0.15s;
-  flex-shrink: 0;
-  z-index: 10;
+  transition: background 0.15s, color 0.15s;
 }
 
 .collapseBtn:hover {
   background: var(--accent-bg);
   color: var(--accent);
   border-color: var(--accent-border);
-}
-
-.sidebar.collapsed .collapseBtn {
-  right: 50%;
-  transform: translateX(50%);
 }
 
 .sidebar.collapsed .collapseBtn svg {
@@ -101,17 +107,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 40px;
-  padding: 0 4px;
-  cursor: default;
+  flex: 1;
   min-width: 0;
   overflow: hidden;
+  cursor: default;
 }
 
 .sidebar.collapsed .logo {
-  justify-content: center;
-  padding: 0;
-  margin-bottom: 48px;
+  flex: 0 0 auto;
 }
 
 .logoTexts {
@@ -239,7 +242,8 @@
 
 .sidebar.collapsed .navItem {
   justify-content: center;
-  padding: 10px;
+  padding: 10px 0;
+  gap: 0;
 }
 
 .sidebar.collapsed .navItem.active::before {
@@ -311,7 +315,8 @@
 
 .sidebar.collapsed .logoutBtn {
   justify-content: center;
-  padding: 10px;
+  padding: 10px 0;
+  gap: 0;
 }
 
 .sidebar.collapsed .logoutBtn span {

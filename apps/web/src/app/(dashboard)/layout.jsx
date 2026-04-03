@@ -126,18 +126,19 @@ export default function DashboardLayout({ children }) {
   return (
     <div className={styles.layout}>
       <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
-        <button className={styles.collapseBtn} onClick={toggleCollapse} title={collapsed ? 'Expandir' : 'Colapsar'}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-
-        <div className={styles.logo}>
-          <img src="/logo_recordai.png" alt="RecordAI" className={styles.logoMark} />
-          <div className={styles.logoTexts}>
-            <span className={styles.logoText}>RecordAI</span>
-            <span className={styles.logoSub}>Pro</span>
+        <div className={styles.sidebarHeader}>
+          <div className={styles.logo}>
+            <img src="/logo_recordai.png" alt="RecordAI" className={styles.logoMark} />
+            <div className={styles.logoTexts}>
+              <span className={styles.logoText}>RecordAI</span>
+              <span className={styles.logoSub}>Pro</span>
+            </div>
           </div>
+          <button className={styles.collapseBtn} onClick={toggleCollapse} title={collapsed ? 'Expandir' : 'Colapsar'}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
         </div>
 
         <nav className={styles.nav}>
