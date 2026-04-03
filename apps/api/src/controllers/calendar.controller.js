@@ -219,7 +219,7 @@ async function events(req, res, next) {
       // Match event description to a service from parentheses: (Service Name)
       // If found in parentheses but doesn't exist → create it.
       // If no parentheses → use default service.
-      async function matchService(description = '') {
+      async function matchService(description = '', durationMinutes = 30) {
         if (!description) return allServices[0];
 
         const parenMatch = description.match(/\(([^)]+)\)/);
@@ -229,10 +229,10 @@ async function events(req, res, next) {
         const matched = allServices.find(s => s.name.toLowerCase() === serviceName.toLowerCase());
         if (matched) return matched;
 
-        // Create service on the fly
+        // Create service on the fly using the event's duration
         const { data: created, error: createErr } = await supabase
           .from('services')
-          .insert({ tenant_id: req.tenantId, name: serviceName, duration_minutes: 30, price: 0 })
+          .insert({ tenant_id: req.tenantId, name: serviceName, duration_minutes: durationMinutes, price: 0 })
           .select('id, name')
           .single();
         if (createErr) {
@@ -256,7 +256,10 @@ async function events(req, res, next) {
         });
         if (!contact) continue;
 
-        const service = await matchService(event.description);
+        const eventDuration = event.end && event.start
+          ? Math.round((new Date(event.end) - new Date(event.start)) / 60000)
+          : 30;
+        const service = await matchService(event.description, eventDuration);
 
         const { data: newAppointment, error: createAppointmentError } = await supabase
           .from('appointments')
