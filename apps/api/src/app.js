@@ -20,6 +20,15 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(express.json());
 
+app.get('/', (req, res) => {
+	res.send(`
+		<h1>Bienvenido a AutoAgenda</h1>
+		<p>Tu sistema inteligente de recordatorios.</p>
+		<a href="/privacy">Política de Privacidad</a> |
+		<a href="/terms">Términos del Servicio</a>
+	`);
+});
+
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // Public confirmation pages (no auth)
