@@ -1,4 +1,4 @@
-const { supabase, convertKeys } = require('@recordai/db');
+const { supabase, convertKeys } = require('@autoagenda/db');
 const { AppError } = require('../errors');
 
 const ALLOWED_FIELDS = [

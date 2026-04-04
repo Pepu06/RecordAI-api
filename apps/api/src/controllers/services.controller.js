@@ -1,4 +1,4 @@
-const { supabase, convertKeys } = require('@recordai/db');
+const { supabase, convertKeys } = require('@autoagenda/db');
 const { NotFoundError } = require('../errors');
 
 async function list(req, res, next) {

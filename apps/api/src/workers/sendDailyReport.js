@@ -1,4 +1,4 @@
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const { sendTemplate } = require('../services/whatsapp');
 const logger = require('../config/logger');
 

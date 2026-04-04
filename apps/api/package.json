@@ -1,5 +1,5 @@
 {
-  "name": "@recordai/api",
+  "name": "@autoagenda/api",
   "version": "0.0.1",
   "main": "src/index.js",
   "scripts": {
@@ -8,8 +8,8 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@recordai/db": "*",
-    "@recordai/shared": "*",
+    "@autoagenda/db": "*",
+    "@autoagenda/shared": "*",
     "axios": "^1.7.0",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.12.0",

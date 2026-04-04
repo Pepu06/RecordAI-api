@@ -1,7 +1,7 @@
-const { supabase, convertKeys } = require('@recordai/db');
+const { supabase, convertKeys } = require('@autoagenda/db');
 const { AppError, NotFoundError } = require('../errors');
 const { appointmentsQueue } = require('../workers/queue');
-const { JobName } = require('@recordai/shared');
+const { JobName } = require('@autoagenda/shared');
 const { updateEventColor, refreshAccessToken, getCalendarEvents } = require('../services/google');
 
 const APPOINTMENT_SELECT = '*, contact:contacts(*), service:services(*), user:users(*)';

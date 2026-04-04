@@ -128,9 +128,9 @@ export default function DashboardLayout({ children }) {
       <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
-            <img src="/logo_recordai.png" alt="RecordAI" className={styles.logoMark} />
+            <img src="/logo_autoagenda.png" alt="AutoAgenda" className={styles.logoMark} />
             <div className={styles.logoTexts}>
-              <span className={styles.logoText}>RecordAI</span>
+              <span className={styles.logoText}>AutoAgenda</span>
               <span className={styles.logoSub}>Pro</span>
             </div>
           </div>

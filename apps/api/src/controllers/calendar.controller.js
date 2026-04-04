@@ -1,9 +1,9 @@
-const { supabase, convertKeys } = require('@recordai/db');
+const { supabase, convertKeys } = require('@autoagenda/db');
 const logger = require('../config/logger');
 const { getCalendarEvents, getCalendarEvent, refreshAccessToken, exchangeCodeForTokens, getUserInfo, updateEventColor, updateEventTitleAndColor, createCalendarEvent } = require('../services/google');
 const { sendTemplate } = require('../services/whatsapp');
 const { appointmentsQueue } = require('../workers/queue');
-const { JobName } = require('@recordai/shared');
+const { JobName } = require('@autoagenda/shared');
 const { AppError } = require('../errors');
 const { formatTime, formatTemplateHour } = require('../utils/datetime');
 

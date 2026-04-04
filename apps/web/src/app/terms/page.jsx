@@ -1,8 +1,8 @@
 import styles from './terms.module.css';
 
 export const metadata = {
-  title: 'Condiciones del Servicio - RecordAI',
-  description: 'Términos y condiciones de uso de RecordAI',
+  title: 'Condiciones del Servicio - AutoAgenda',
+  description: 'Términos y condiciones de uso de AutoAgenda',
 };
 
 export default function TermsPage() {
@@ -15,14 +15,14 @@ export default function TermsPage() {
         <section>
           <h2>1. Aceptación de los Términos</h2>
           <p>
-            Al utilizar RecordAI ("el Servicio"), usted acepta estar legalmente vinculado por estas Condiciones del Servicio. 
+            Al utilizar AutoAgenda ("el Servicio"), usted acepta estar legalmente vinculado por estas Condiciones del Servicio. 
             Si no está de acuerdo con estos términos, no utilice el Servicio.
           </p>
         </section>
 
         <section>
           <h2>2. Descripción del Servicio</h2>
-          <p>RecordAI es un servicio de automatización que:</p>
+          <p>AutoAgenda es un servicio de automatización que:</p>
           <ul>
             <li>Se conecta a su cuenta de Google Calendar mediante autenticación OAuth 2.0</li>
             <li>Lee los eventos programados en su calendario</li>
@@ -150,7 +150,7 @@ export default function TermsPage() {
         <section>
           <h2>8. Propiedad Intelectual</h2>
           <p>
-            Todo el código, diseño, marcas y contenido del Servicio son propiedad de RecordAI o sus licenciantes. 
+            Todo el código, diseño, marcas y contenido del Servicio son propiedad de AutoAgenda o sus licenciantes. 
             Está prohibido:
           </p>
           <ul>
@@ -219,15 +219,15 @@ export default function TermsPage() {
           <h2>14. Contacto y Soporte</h2>
           <p>Para preguntas, soporte técnico o asuntos legales, contáctenos:</p>
           <ul>
-            <li><strong>Email de Soporte</strong>: support@recordai.app</li>
-            <li><strong>Email Legal</strong>: legal@recordai.app</li>
-            <li><strong>Sitio Web</strong>: https://recordai.app</li>
+            <li><strong>Email de Soporte</strong>: support@autoagenda.app</li>
+            <li><strong>Email Legal</strong>: legal@autoagenda.app</li>
+            <li><strong>Sitio Web</strong>: https://autoagenda.app</li>
           </ul>
         </section>
 
         <footer className={styles.footer}>
           <p className={styles.confirmation}>
-            Al usar RecordAI, confirma que ha leído, comprendido y aceptado estos Términos de Servicio en su totalidad.
+            Al usar AutoAgenda, confirma que ha leído, comprendido y aceptado estos Términos de Servicio en su totalidad.
           </p>
         </footer>
       </div>

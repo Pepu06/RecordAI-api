@@ -7,7 +7,7 @@ const { startDailyReminderCron } = require('./workers/dailyCalendarReminder');
 const { startDailyReportCron } = require('./workers/dailyReportCron');
 
 app.listen(env.PORT, () => {
-  logger.info(`RecordAI API running on port ${env.PORT}`);
+  logger.info(`AutoAgenda API running on port ${env.PORT}`);
   startDailyReminderCron();
   startDailyReportCron();
 });

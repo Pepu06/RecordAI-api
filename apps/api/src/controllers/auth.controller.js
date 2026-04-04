@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const env = require('../config/env');
 const { AppError } = require('../errors');
 const { exchangeCodeForTokens, getUserInfo } = require('../services/google');

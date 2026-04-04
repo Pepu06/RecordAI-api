@@ -1,4 +1,4 @@
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const { getCalendarEvent, updateEventTitleAndColor, refreshAccessToken } = require('../services/google');
 const { sendTemplate } = require('../services/whatsapp');
 const env = require('../config/env');

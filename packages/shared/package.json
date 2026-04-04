@@ -1,5 +1,5 @@
 {
-  "name": "@recordai/shared",
+  "name": "@autoagenda/shared",
   "version": "0.0.1",
   "main": "src/constants.js"
 }

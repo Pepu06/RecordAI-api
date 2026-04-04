@@ -1,4 +1,4 @@
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const { getCalendarEvent, updateEventTitleAndColor, refreshAccessToken } = require('../services/google');
 const { sendTextMessage } = require('../services/whatsapp');
 const logger = require('../config/logger');
@@ -107,7 +107,7 @@ function renderPage(title, bodyHtml) {
 </head>
 <body>
   <div class="card">
-    <div class="logo">RecordAI</div>
+    <div class="logo">AutoAgenda</div>
     ${bodyHtml}
   </div>
 </body>

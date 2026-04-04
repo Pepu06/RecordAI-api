@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const { sendDailyReport } = require('./sendDailyReport');
 const logger = require('../config/logger');
 

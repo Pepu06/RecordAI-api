@@ -1,10 +1,10 @@
 const cron = require('node-cron');
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const { sendTemplate } = require('../services/whatsapp');
 const logger = require('../config/logger');
 const { formatTemplateHour } = require('../utils/datetime');
 const { appointmentsQueue } = require('./queue');
-const { JobName } = require('@recordai/shared');
+const { JobName } = require('@autoagenda/shared');
 
 function hasReminderConfig(tenant) {
   const businessName = String(tenant?.business_name || '').trim();
@@ -86,7 +86,7 @@ async function runDailyReminders() {
     });
     const horaLabel = formatTemplateHour(dateObj, { timeZone: tz, timeFormat });
 
-    const encabezado = (appt.tenant?.business_name || 'RecordAI').slice(0, 40);
+    const encabezado = (appt.tenant?.business_name || 'AutoAgenda').slice(0, 40);
     const mensajeEditable = (appt.tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
     const ubicacion = appt.tenant?.location || '';
 

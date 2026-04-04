@@ -9,7 +9,7 @@ if (!env.REDIS_URL) {
 }
 
 const { Queue, Worker } = require('bullmq');
-const { JobName } = require('@recordai/shared');
+const { JobName } = require('@autoagenda/shared');
 
 const connection = { url: env.REDIS_URL, maxRetriesPerRequest: null, lazyConnect: true };
 

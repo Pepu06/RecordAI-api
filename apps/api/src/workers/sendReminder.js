@@ -1,8 +1,8 @@
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const { sendTemplate } = require('../services/whatsapp');
 const logger = require('../config/logger');
 const { appointmentsQueue } = require('./queue');
-const { JobName } = require('@recordai/shared');
+const { JobName } = require('@autoagenda/shared');
 const { formatTemplateHour } = require('../utils/datetime');
 
 function hasReminderConfig(tenant) {
@@ -44,7 +44,7 @@ async function sendReminder({ appointmentId }) {
     timeFormat: appointment.tenant?.time_format,
   });
 
-  const encabezado  = (appointment.tenant?.business_name || 'RecordAI').slice(0, 40);
+  const encabezado  = (appointment.tenant?.business_name || 'AutoAgenda').slice(0, 40);
   const mensajeEdit = (appointment.tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
   const ubicacion   = appointment.tenant?.location || '';
 

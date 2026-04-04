@@ -96,8 +96,8 @@ export default function LoginPage() {
       <div className={styles.decorPanel}>
         <div className={styles.decorContent}>
           <div className={styles.decorBrand}>
-            <img src="/logo_recordai.png" alt="RecordAI" className={styles.decorMark} />
-            <span className={styles.decorBrandName}>RecordAI</span>
+            <img src="/logo_autoagenda.png" alt="AutoAgenda" className={styles.decorMark} />
+            <span className={styles.decorBrandName}>AutoAgenda</span>
           </div>
 
           <h1 className={styles.decorHeading}>
@@ -124,8 +124,8 @@ export default function LoginPage() {
         <div className={styles.card}>
           {/* Mobile brand (only shown < 900px) */}
           <div className={styles.mobileBrand}>
-            <img src="/logo_recordai.png" alt="RecordAI" className={styles.mobileMark} />
-            <span className={styles.mobileBrandName}>RecordAI</span>
+            <img src="/logo_autoagenda.png" alt="AutoAgenda" className={styles.mobileMark} />
+            <span className={styles.mobileBrandName}>AutoAgenda</span>
           </div>
 
           <h2 className={styles.title}>Bienvenido de vuelta</h2>

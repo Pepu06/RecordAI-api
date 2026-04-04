@@ -1,8 +1,8 @@
 import styles from './privacy.module.css';
 
 export const metadata = {
-  title: 'Política de Privacidad - RecordAI',
-  description: 'Política de privacidad y uso de datos de RecordAI',
+  title: 'Política de Privacidad - AutoAgenda',
+  description: 'Política de privacidad y uso de datos de AutoAgenda',
 };
 
 export default function PrivacyPage() {
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         <section>
           <h2>Introducción</h2>
           <p>
-            RecordAI ("nosotros", "nuestro" o "la aplicación") se compromete a proteger la privacidad de sus usuarios. 
+            AutoAgenda ("nosotros", "nuestro" o "la aplicación") se compromete a proteger la privacidad de sus usuarios. 
             Esta Política de Privacidad explica cómo accedemos, usamos, almacenamos y compartimos los datos obtenidos 
             de su cuenta de Google Calendar.
           </p>
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
 
           <h3>Divulgación de Uso Limitado de Google</h3>
           <p>
-            El uso que hace RecordAI de la información recibida de las APIs de Google cumple con la{' '}
+            El uso que hace AutoAgenda de la información recibida de las APIs de Google cumple con la{' '}
             <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">
               Política de Datos de Usuario de los Servicios de API de Google
             </a>, incluidos los requisitos de Uso Limitado.
@@ -155,8 +155,8 @@ export default function PrivacyPage() {
           <h2>Contacto</h2>
           <p>Si tiene preguntas sobre esta Política de Privacidad o desea ejercer sus derechos, contáctenos en:</p>
           <ul>
-            <li><strong>Email</strong>: privacy@recordai.app</li>
-            <li><strong>Sitio web</strong>: https://recordai.app</li>
+            <li><strong>Email</strong>: privacy@autoagenda.app</li>
+            <li><strong>Sitio web</strong>: https://autoagenda.app</li>
           </ul>
         </section>
 
