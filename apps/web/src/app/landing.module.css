@@ -28,15 +28,11 @@
   justify-content: space-between;
 }
 
-.logo {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 800;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.3px;
+.navLogo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .navCta {
@@ -490,14 +486,11 @@
   gap: 16px;
 }
 
-.footerLogo {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 800;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.footerLogoImg {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .footerLinks {
@@ -520,6 +513,70 @@
 .footerCopy {
   font-size: 13px;
   color: var(--text-3);
+}
+
+/* ── Config section ── */
+.configSection {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.configGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.configCard {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.configCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.configIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.configTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.configList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.configItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.configDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  flex-shrink: 0;
+  margin-top: 6px;
 }
 
 /* ── Responsive ── */

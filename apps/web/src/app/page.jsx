@@ -20,34 +20,33 @@ const steps = [
     desc: 'Usá la sintaxis correcta en el título y la descripción del evento para que el sistema identifique al cliente y su número automáticamente.',
     syntax: [
       {
-        tag: 'Título',
+        tag: 'Título del evento',
         tagClass: 'syntaxTagBlue',
-        label: 'El nombre del cliente entre corchetes rectos',
+        label: 'Nombre del cliente seguido del teléfono entre corchetes',
         example: (
           <>
-            Cita Médica - <span className={s.syntaxHighlight}>[Juan Pérez]</span>
+            Juan Pérez <span className={s.syntaxHighlight}>[5491140962011]</span>
           </>
         ),
-        tip: 'El texto fuera de los corchetes puede ser cualquier nombre de servicio o descripción.',
+        tip: 'El número puede incluir o no el +54/54911 — AutoAgenda lo normaliza solo. Lo que escribas antes de los corchetes es el nombre que verá el cliente en el mensaje.',
       },
       {
-        tag: 'Descripción',
+        tag: 'Descripción del evento',
         tagClass: 'syntaxTagGreen',
-        label: 'El teléfono entre corchetes y el servicio entre paréntesis',
+        label: 'Servicio o motivo de la cita entre paréntesis',
         example: (
           <>
-            <span className={s.syntaxHighlight}>[5491140962011]</span>{' '}
             <span className={s.syntaxHighlight}>(Consulta médica)</span>
           </>
         ),
-        tip: 'Teléfono con código de país en [], servicio en (). Ej: Argentina → 5491140962011.',
+        tip: 'Lo que escribas entre paréntesis aparece como nombre del servicio en el recordatorio. Podés poner cualquier texto: "Limpieza dental", "Reunión", "Corte y color", etc.',
       },
     ],
   },
   {
     num: 3,
     title: 'El sistema trabaja por vos',
-    desc: 'AutoAgenda lee el evento, extrae los datos del cliente y envía el mensaje de recordatorio automáticamente por WhatsApp en el horario configurado. El cliente confirma o cancela con un solo toque.',
+    desc: 'AutoAgenda lee el evento, extrae el nombre, teléfono y servicio, y envía el mensaje de recordatorio automáticamente por WhatsApp en el horario configurado. El cliente confirma o cancela con un solo toque.',
     syntax: null,
   },
 ];
@@ -73,13 +72,70 @@ const benefits = [
   },
 ];
 
+const configSections = [
+  {
+    icon: '🏢',
+    title: 'General',
+    items: [
+      'Nombre del negocio (aparece en el encabezado del mensaje)',
+      'Zona horaria (Buenos Aires, Santiago, Bogotá, México, Madrid…)',
+      'Formato de hora: 24h o 12h AM/PM',
+      'Activar o pausar el motor de mensajes',
+    ],
+  },
+  {
+    icon: '💬',
+    title: 'Proveedor de WhatsApp',
+    items: [
+      'Meta WhatsApp Business API — número verificado, plantillas oficiales',
+      'WasenderAPI — conectá cualquier número con QR, sin plantillas',
+    ],
+  },
+  {
+    icon: '✏️',
+    title: 'Mensaje personalizable',
+    items: [
+      'Texto libre que aparece en el cuerpo del recordatorio',
+      'Ideal para instrucciones: "Recordá traer tu DNI", link de Meet, etc.',
+      'Vista previa del mensaje en tiempo real mientras escribís',
+    ],
+  },
+  {
+    icon: '⏰',
+    title: 'Recordatorios',
+    items: [
+      'Momento: día anterior o mismo día del turno',
+      'Hora de envío (cualquier hora del día)',
+    ],
+  },
+  {
+    icon: '🤖',
+    title: 'Alertas y reporte diario (Admin)',
+    items: [
+      'Número/s de WhatsApp del administrador (puede ser más de uno)',
+      'Alerta en tiempo real cuando un cliente cancela',
+      'Reporte diario: matutino (lista del día) o vespertino (lista del día siguiente)',
+      'Días de la semana en que se envía el reporte',
+      'Hora de envío del reporte',
+    ],
+  },
+  {
+    icon: '📍',
+    title: 'Ubicación',
+    items: [
+      'Dirección fija: una sola dirección para todos los turnos',
+      'Desde Google Calendar: toma el campo "Lugar" de cada evento individualmente',
+    ],
+  },
+];
+
 export default function LandingPage() {
   return (
     <div className={s.page}>
       {/* ── Navbar ── */}
       <nav className={s.navbar}>
         <div className={s.navInner}>
-          <span className={s.logo}>AutoAgenda</span>
+          <img src="/logo-landing.jpeg" alt="AutoAgenda" className={s.navLogo} />
           <Link href="/dashboard" className={s.navCta}>
             Entrar al Dashboard <span>→</span>
           </Link>
@@ -186,6 +242,37 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Config reference ── */}
+      <section className={`${s.section} ${s.configSection}`}>
+        <div className={s.sectionInner}>
+          <div className={s.sectionLabel}>
+            <span>⚙️</span> Configuración
+          </div>
+          <h2 className={s.sectionTitle}>Todo lo que podés personalizar</h2>
+          <p className={s.sectionSubtitle}>
+            Desde el panel de configuración controlás cada aspecto del sistema sin tocar código.
+          </p>
+          <div className={s.configGrid}>
+            {configSections.map((section) => (
+              <div key={section.title} className={s.configCard}>
+                <div className={s.configCardHeader}>
+                  <span className={s.configIcon}>{section.icon}</span>
+                  <h3 className={s.configTitle}>{section.title}</h3>
+                </div>
+                <ul className={s.configList}>
+                  {section.items.map((item, i) => (
+                    <li key={i} className={s.configItem}>
+                      <span className={s.configDot} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA Banner ── */}
       <section className={s.ctaBanner}>
         <h2 className={s.ctaBannerTitle}>
@@ -202,7 +289,7 @@ export default function LandingPage() {
       {/* ── Footer ── */}
       <footer className={s.footer}>
         <div className={s.footerInner}>
-          <span className={s.footerLogo}>AutoAgenda</span>
+          <img src="/logo-landing.jpeg" alt="AutoAgenda" className={s.footerLogoImg} />
           <div className={s.footerLinks}>
             <Link href="/privacy" className={s.footerLink}>
               Política de Privacidad
