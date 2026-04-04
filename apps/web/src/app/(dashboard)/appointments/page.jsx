@@ -5,7 +5,10 @@ import { api } from '../../../lib/api';
 import styles from './appointments.module.css';
 import tableStyles from '../../../components/appointments/AppointmentTable.module.css';
 
+const STATUS_FALLBACK = { label: 'Sin enviar', color: 'var(--text-3)', bg: 'var(--surface-3)' };
+
 const STATUS_CONFIG = {
+  sin_enviar: STATUS_FALLBACK,
   pending:   { label: 'Pendiente',  color: 'var(--yellow)',  bg: 'var(--yellow-bg)' },
   notified:  { label: 'Notificado', color: 'var(--blue)',    bg: 'var(--blue-bg)' },
   confirmed: { label: 'Confirmado', color: 'var(--green)',   bg: 'var(--green-bg)' },
@@ -100,7 +103,7 @@ export default function AppointmentsPage() {
             </thead>
             <tbody>
               {filtered.map(e => {
-                const s = STATUS_CONFIG[e.status] || STATUS_CONFIG['null'];
+                const s = STATUS_CONFIG[e.status] ?? STATUS_FALLBACK;
                 return (
                   <tr key={e.id}>
                     <td>
