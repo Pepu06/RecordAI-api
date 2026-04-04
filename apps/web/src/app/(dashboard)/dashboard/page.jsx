@@ -20,14 +20,15 @@ function getGreeting() {
 }
 
 export default function DashboardPage() {
-  const [events, setEvents]   = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [events, setEvents]     = useState([]);
+  const [usage, setUsage]       = useState(null);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
-    api.get('/calendar/events')
-      .then(res => setEvents(res.data || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get('/calendar/events').then(res => setEvents(res.data || [])).catch(() => {}),
+      api.get('/subscription').then(res => setUsage(res)).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -67,6 +68,9 @@ export default function DashboardPage() {
           Tenés {stats.pending} cita{stats.pending !== 1 ? 's' : ''} pendiente{stats.pending !== 1 ? 's' : ''} de confirmación en los próximos 30 días.
         </p>
       </div>
+
+      {/* Widget de uso */}
+      {usage && <UsageWidget usage={usage.usage} trial={usage.trial} planDetails={usage.planDetails} />}
 
       {/* Quick actions */}
       <div className={styles.quickActions}>
@@ -167,6 +171,49 @@ function EventList({ events, emptyText, timezone, showDate }) {
         );
       })}
     </div>
+  );
+}
+
+function UsageWidget({ usage, trial, planDetails }) {
+  if (!usage) return null;
+
+  const isUnlimited = usage.unlimited;
+  const sent = usage.messagesSent || 0;
+  const limit = usage.messageLimit || 0;
+  const ratio = isUnlimited || limit === 0 ? 0 : sent / limit;
+  const isWarning = !isUnlimited && ratio >= 0.8;
+  const isExpired = trial && !trial.active && !planDetails?.price;
+
+  return (
+    <a href="/billing" className={styles.usageWidget} style={{ borderColor: isExpired ? 'var(--red-border)' : isWarning ? 'var(--yellow-border)' : 'var(--border)' }}>
+      <div className={styles.usageLeft}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: isExpired ? 'var(--red)' : isWarning ? 'var(--yellow)' : 'var(--accent-2)' }}>
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        {isExpired ? (
+          <span style={{ color: 'var(--red)', fontWeight: 600, fontSize: 13 }}>Trial expirado · Elegir plan →</span>
+        ) : trial?.active ? (
+          <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
+            <strong style={{ color: 'var(--accent-2)' }}>Trial</strong> · {trial.daysLeft} día{trial.daysLeft !== 1 ? 's' : ''} restante{trial.daysLeft !== 1 ? 's' : ''}
+          </span>
+        ) : isUnlimited ? (
+          <span style={{ fontSize: 13, color: 'var(--text-2)' }}><strong style={{ color: 'var(--accent-2)' }}>{planDetails?.name}</strong> · Mensajes ilimitados</span>
+        ) : (
+          <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
+            Mensajes este mes: <strong style={{ color: isWarning ? 'var(--yellow)' : 'var(--text)' }}>{sent} / {limit}</strong>
+            {isWarning && <span style={{ color: 'var(--yellow)', marginLeft: 8 }}>· Cerca del límite</span>}
+          </span>
+        )}
+      </div>
+      {!isUnlimited && !isExpired && !trial?.active && (
+        <div className={styles.usageBar}>
+          <div className={styles.usageBarFill} style={{ width: `${Math.min(ratio * 100, 100)}%`, background: isWarning ? 'var(--yellow)' : 'var(--accent-2)' }} />
+        </div>
+      )}
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-3)', flexShrink: 0 }}>
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </a>
   );
 }
 

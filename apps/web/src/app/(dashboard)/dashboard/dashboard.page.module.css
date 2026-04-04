@@ -48,6 +48,49 @@
   line-height: 1.5;
 }
 
+/* ── Usage widget ── */
+.usageWidget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.usageWidget:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.usageLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.usageBar {
+  width: 100px;
+  height: 5px;
+  background: var(--surface-3);
+  border-radius: 99px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.usageBarFill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
 /* ── Quick actions ── */
 .quickActions {
   display: flex;

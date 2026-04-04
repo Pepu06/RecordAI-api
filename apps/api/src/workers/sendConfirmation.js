@@ -3,6 +3,7 @@ const { sendTemplate } = require('../services/whatsapp');
 const { getCalendarEvent, refreshAccessToken } = require('../services/google');
 const logger = require('../config/logger');
 const { formatTime } = require('../utils/datetime');
+const { trackMessageSent } = require('./usageTracking');
 
 async function sendConfirmation({ appointmentId }) {
   const { data: appointment } = await supabase
@@ -81,6 +82,8 @@ async function sendConfirmation({ appointmentId }) {
       ubicacion,                                   // {{7}} ubicación
     ],
   }, tenantConfig);
+
+  await trackMessageSent(appointment.tenant_id, 'confirmation');
 
   const { error: updateError } = await supabase
     .from('appointments')

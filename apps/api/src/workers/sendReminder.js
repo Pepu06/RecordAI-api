@@ -4,6 +4,7 @@ const logger = require('../config/logger');
 const { appointmentsQueue } = require('./queue');
 const { JobName } = require('@autoagenda/shared');
 const { formatTemplateHour } = require('../utils/datetime');
+const { trackMessageSent } = require('./usageTracking');
 
 function hasReminderConfig(tenant) {
   const businessName = String(tenant?.business_name || '').trim();
@@ -82,6 +83,8 @@ async function sendReminder({ appointmentId }) {
     logger.error({ appointmentId, updateError }, 'Failed to mark appointment as pending after reminder');
     throw updateError;
   }
+
+  await trackMessageSent(appointment.tenant_id, 'reminder');
 
   appointmentsQueue
     .add(JobName.SEND_FOLLOW_UP, { appointmentId }, { delay: 2 * 60 * 60 * 1000 })
