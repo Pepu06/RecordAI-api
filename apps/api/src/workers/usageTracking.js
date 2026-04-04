@@ -1,4 +1,4 @@
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const logger = require('../config/logger');
 
 /**
@@ -14,12 +14,19 @@ async function trackMessageSent(tenantId, messageType = 'unknown') {
     const month = now.getMonth() + 1; // 1-12
 
     // 1. Increment tenant's monthly counter
-    const { error: tenantError } = await supabase
+    const { data: tenantData, error: tenantFetchError } = await supabase
       .from('tenants')
-      .update({
-        messages_sent_this_month: supabase.raw('messages_sent_this_month + 1'),
-      })
-      .eq('id', tenantId);
+      .select('messages_sent_this_month')
+      .eq('id', tenantId)
+      .single();
+
+    const tenantError = tenantFetchError;
+    if (!tenantFetchError && tenantData) {
+      await supabase
+        .from('tenants')
+        .update({ messages_sent_this_month: (tenantData.messages_sent_this_month || 0) + 1 })
+        .eq('id', tenantId);
+    }
 
     if (tenantError) {
       logger.error({ 

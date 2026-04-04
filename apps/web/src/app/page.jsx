@@ -33,14 +33,14 @@ const steps = [
       {
         tag: 'Descripción',
         tagClass: 'syntaxTagGreen',
-        label: 'El teléfono WhatsApp entre paréntesis (sin + ni espacios)',
+        label: 'El teléfono entre corchetes y el servicio entre paréntesis',
         example: (
           <>
-            Confirmar asistencia{' '}
-            <span className={s.syntaxHighlight}>(5491140962011)</span>
+            <span className={s.syntaxHighlight}>[5491140962011]</span>{' '}
+            <span className={s.syntaxHighlight}>(Consulta médica)</span>
           </>
         ),
-        tip: 'Incluí el código de país. Ej: 549 para Argentina → 5491140962011.',
+        tip: 'Teléfono con código de país en [], servicio en (). Ej: Argentina → 5491140962011.',
       },
     ],
   },

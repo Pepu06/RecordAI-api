@@ -1,4 +1,4 @@
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const { getPlanConfig } = require('../services/mercadopago');
 const logger = require('../config/logger');
 

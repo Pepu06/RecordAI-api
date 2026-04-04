@@ -1,5 +1,5 @@
 const { MercadoPagoConfig, PreApproval } = require('mercadopago');
-const { supabase } = require('@recordai/db');
+const { supabase } = require('@autoagenda/db');
 const logger = require('../config/logger');
 const env = require('../config/env');
 
