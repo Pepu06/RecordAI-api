@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import { api } from '../../../lib/api';
 import styles from './dashboard.page.module.css';
 
+const STATUS_FALLBACK = { label: 'Sin enviar', color: 'var(--text-3)', bg: 'var(--surface-3)' };
+
 const STATUS_CONFIG = {
-  null:      { label: 'Sin enviar', color: 'var(--text-3)',  bg: 'var(--surface-3)' },
+  sin_enviar: STATUS_FALLBACK,
+  null:       STATUS_FALLBACK,
   pending:   { label: 'Pendiente',  color: 'var(--yellow)',  bg: 'var(--yellow-bg)' },
   notified:  { label: 'Notificado', color: 'var(--blue)',    bg: 'var(--blue-bg)' },
   confirmed: { label: 'Confirmado', color: 'var(--green)',   bg: 'var(--green-bg)' },
@@ -149,7 +152,7 @@ function EventList({ events, emptyText, timezone, showDate }) {
   return (
     <div className={styles.activityList}>
       {events.map(e => {
-        const s = STATUS_CONFIG[e.status] || STATUS_CONFIG['null'];
+        const s = STATUS_CONFIG[e.status] ?? STATUS_FALLBACK;
         const dateObj = new Date(e.start);
         const time = dateObj.toLocaleTimeString('es-AR', { timeZone: timezone, hour: '2-digit', minute: '2-digit' });
         const dateLabel = showDate ? dateObj.toLocaleDateString('es-AR', {
