@@ -134,6 +134,7 @@ export default function AppointmentsPage() {
                         onChange={ev => handleStatusChange(e.id, ev.target.value)}
                         className={tableStyles.select}
                       >
+                        <option value="sin_enviar">Sin enviar</option>
                         <option value="notified">Notificado</option>
                         <option value="pending">Pendiente</option>
                         <option value="confirmed">Confirmado</option>

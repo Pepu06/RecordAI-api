@@ -8,9 +8,9 @@ export const metadata = {
   },
   description: 'Confirmación automática de citas por WhatsApp para profesionales y negocios.',
   applicationName: 'AutoAgenda',
-  metadataBase: new URL('https://autoagenda.online'), // ACORDATE DE USAR EL .ONLINE QUE COMPRASTE
+  metadataBase: new URL('https://autoagenda.online'),
   icons: {
-    icon: '/logo-landing.png', // Usa el nuevo PNG sin fondo
+    icon: '/logo-landing.png',
     apple: '/logo-landing.png',
   },
   openGraph: {
