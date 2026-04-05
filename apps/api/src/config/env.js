@@ -25,6 +25,9 @@ const envSchema = z.object({
   WASENDER_TEST_EMAIL:   z.string().optional().default('pedrogonzalezsoro@gmail.com'),
   MERCADOPAGO_ACCESS_TOKEN:    z.string().optional().default(''),
   MERCADOPAGO_WEBHOOK_SECRET:  z.string().optional().default(''),
+  GOOGLE_DRIVE_REFRESH_TOKEN:  z.string().optional().default(''),
+  GOOGLE_DRIVE_FOLDER_ID:      z.string().optional().default(''),
+  ADMIN_PANEL_PASSWORD:        z.string().optional().default('autoagenda2026'),
 });
 
 const parsed = envSchema.safeParse(process.env);

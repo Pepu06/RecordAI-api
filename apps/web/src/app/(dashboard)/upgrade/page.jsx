@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
 import s from './upgrade.module.css';
 
@@ -44,12 +45,15 @@ export default function UpgradePage() {
 }
 
 function PlanCard({ plan, featured }) {
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
+  const [showPayment, setShowPayment] = useState(false);
+  const [error, setError] = useState('');
 
   function handleSelectPlan() {
-    // Redirigir a billing con el plan seleccionado
-    window.location.href = `/billing?selected_plan=${plan.id}`;
+    if (plan.contactRequired) {
+      window.location.href = 'mailto:hola@autoagenda.app?subject=Plan Custom';
+      return;
+    }
+    setShowPayment(true);
   }
 
   return (
@@ -84,31 +88,43 @@ function PlanCard({ plan, featured }) {
 
       {error && <div className={s.error}>{error}</div>}
 
-      <button
-        className={plan.contactRequired ? s.btnSecondary : s.btnPrimary}
-        onClick={plan.contactRequired ? () => window.location.href = 'mailto:hola@autoagenda.app?subject=Plan Custom' : handleSelectPlan}
-        disabled={loading}
-      >
-        {loading ? 'Cargando...' : plan.contactRequired ? 'Contactar →' : 'Seleccionar plan →'}
-      </button>
-      
-      {!plan.contactRequired && (
-        <div className={s.paymentInfo}>
-          <div className={s.paymentTitle}>Datos para transferencia:</div>
-          <div className={s.paymentData}>
-            <div className={s.paymentRow}>
-              <span className={s.paymentLabel}>Alias:</span>
-              <span className={s.paymentValue}>pedrogsoro</span>
+      {!showPayment ? (
+        <button
+          className={plan.contactRequired ? s.btnSecondary : s.btnPrimary}
+          onClick={handleSelectPlan}
+        >
+          {plan.contactRequired ? 'Contactar →' : 'Seleccionar plan →'}
+        </button>
+      ) : (
+        <>
+          <div className={s.paymentInfo}>
+            <div className={s.paymentTitle}>💳 Datos para transferencia:</div>
+            <div className={s.paymentData}>
+              <div className={s.paymentRow}>
+                <span className={s.paymentLabel}>Alias:</span>
+                <span className={s.paymentValue}>pedrogsoro</span>
+              </div>
+              <div className={s.paymentRow}>
+                <span className={s.paymentLabel}>CBU:</span>
+                <span className={s.paymentValue}>0000003100096112065785</span>
+              </div>
+              <div className={s.paymentRow}>
+                <span className={s.paymentLabel}>Monto:</span>
+                <span className={s.paymentValue}>${(plan.price / 1000).toFixed(1)}K ARS</span>
+              </div>
             </div>
-            <div className={s.paymentRow}>
-              <span className={s.paymentLabel}>CBU:</span>
-              <span className={s.paymentValue}>0000003100096112065785</span>
+            <div className={s.paymentNote}>
+              Transferí el monto exacto y luego subí tu comprobante en la sección de Facturación.
             </div>
           </div>
-          <div className={s.paymentNote}>
-            Después de transferir, subí tu comprobante en Facturación para activar el plan.
-          </div>
-        </div>
+          <Link
+            href="/billing/upload-proof"
+            className={s.btnPrimary}
+            style={{ marginTop: 12, textDecoration: 'none' }}
+          >
+            Ir a subir comprobante →
+          </Link>
+        </>
       )}
     </div>
   );

@@ -14,6 +14,7 @@ const calendarRoutes = require('./routes/calendar.routes');
 const confirmationRoutes = require('./routes/confirmation.routes');
 const settingsRoutes = require('./routes/settings.routes');
 const subscriptionRoutes = require('./routes/subscription.routes');
+const paymentProofsRoutes = require('./routes/paymentProofs.routes');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/webhook', webhookRoutes);
 app.use('/calendar', calendarRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/subscription', subscriptionRoutes);
+app.use('/', paymentProofsRoutes);
 
 app.use(errorHandler);
 
