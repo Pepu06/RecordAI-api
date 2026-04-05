@@ -93,6 +93,10 @@ async function makeFilePublic(accessToken, fileId) {
   });
 }
 
+function buildPreviewUrl(fileId) {
+  return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1600`;
+}
+
 async function uploadPaymentProof({ tenantId, tenantName, tenantEmail, plan, mimeType, base64Data }) {
   const accessToken = await getDriveAccessToken();
   const folderId = await getAutoAgendaFolderId(accessToken);
@@ -148,7 +152,7 @@ async function uploadPaymentProof({ tenantId, tenantName, tenantEmail, plan, mim
     name: uploaded.name,
     createdTime: uploaded.createdTime,
     webViewLink: uploaded.webViewLink,
-    imageUrl: `https://drive.google.com/uc?export=view&id=${uploaded.id}`,
+    imageUrl: buildPreviewUrl(uploaded.id),
   };
 }
 
@@ -180,18 +184,76 @@ async function listPaymentProofs() {
 
   return (data.files || []).map((file) => ({
     id: file.id,
+    tenantId: file.appProperties?.tenantId || '',
     tenantName: file.appProperties?.tenantName || 'Sin nombre',
     tenantEmail: file.appProperties?.tenantEmail || '—',
     plan: file.appProperties?.plan || '—',
-    amount: null,
     createdAt: file.createdTime,
-    imageUrl: `https://drive.google.com/uc?export=view&id=${file.id}`,
+    imageUrl: buildPreviewUrl(file.id),
     webViewLink: file.webViewLink,
     fileName: file.name,
   }));
 }
 
+async function getPaymentProofById(fileId) {
+  const accessToken = await getDriveAccessToken();
+  const res = await fetch(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=id,name,createdTime,webViewLink,appProperties`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error?.message || 'Could not fetch payment proof from Google Drive');
+  }
+
+  return {
+    id: data.id,
+    tenantId: data.appProperties?.tenantId || '',
+    tenantName: data.appProperties?.tenantName || 'Sin nombre',
+    tenantEmail: data.appProperties?.tenantEmail || '—',
+    plan: data.appProperties?.plan || '—',
+    createdAt: data.createdTime,
+    webViewLink: data.webViewLink,
+    imageUrl: buildPreviewUrl(data.id),
+    fileName: data.name,
+  };
+}
+
 module.exports = {
   uploadPaymentProof,
   listPaymentProofs,
+  getPaymentProofById,
+  async downloadPaymentProof(fileId) {
+    const accessToken = await getDriveAccessToken();
+
+    const metadataRes = await fetch(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=id,mimeType,name`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const metadata = await metadataRes.json();
+    if (!metadataRes.ok) {
+      throw new Error(metadata?.error?.message || 'Could not fetch payment proof metadata from Google Drive');
+    }
+
+    const fileRes = await fetch(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!fileRes.ok) {
+      let details = 'Could not download payment proof from Google Drive';
+      try {
+        const errJson = await fileRes.json();
+        details = errJson?.error?.message || details;
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(details);
+    }
+
+    const arrayBuffer = await fileRes.arrayBuffer();
+    return {
+      mimeType: metadata.mimeType || 'application/octet-stream',
+      fileName: metadata.name || `proof_${fileId}`,
+      buffer: Buffer.from(arrayBuffer),
+    };
+  },
 };

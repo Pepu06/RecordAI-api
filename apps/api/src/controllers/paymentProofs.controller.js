@@ -1,8 +1,15 @@
 const { supabase } = require('@autoagenda/db');
 const env = require('../config/env');
-const { ValidationError, ForbiddenError } = require('../errors');
-const { uploadPaymentProof, listPaymentProofs } = require('../services/googleDrive');
+const { ValidationError, ForbiddenError, NotFoundError } = require('../errors');
+const { uploadPaymentProof, listPaymentProofs, getPaymentProofById, downloadPaymentProof } = require('../services/googleDrive');
 const logger = require('../config/logger');
+
+function assertAdminPassword(req) {
+  const adminPassword = req.headers['x-admin-password'];
+  if (!adminPassword || adminPassword !== env.ADMIN_PANEL_PASSWORD) {
+    throw new ForbiddenError('Admin password inválida');
+  }
+}
 
 function parseDataUrl(dataUrl) {
   const match = String(dataUrl || '').match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
@@ -68,13 +75,128 @@ async function createPaymentProof(req, res, next) {
 
 async function getAdminPaymentProofs(req, res, next) {
   try {
-    const adminPassword = req.headers['x-admin-password'];
-    if (!adminPassword || adminPassword !== env.ADMIN_PANEL_PASSWORD) {
-      throw new ForbiddenError('Admin password inválida');
-    }
+    assertAdminPassword(req);
 
     const proofs = await listPaymentProofs();
-    return res.json({ proofs });
+    const tenantIds = [...new Set(proofs.map(p => p.tenantId).filter(Boolean))];
+    const emailsWithoutTenant = [...new Set(
+      proofs
+        .filter((p) => !p.tenantId && p.tenantEmail && p.tenantEmail !== '—')
+        .map((p) => p.tenantEmail)
+    )];
+
+    let tenantPhoneById = {};
+    if (tenantIds.length) {
+      const { data: tenants } = await supabase
+        .from('tenants')
+        .select('id, admin_whatsapp')
+        .in('id', tenantIds);
+
+      tenantPhoneById = (tenants || []).reduce((acc, t) => {
+        acc[t.id] = t.admin_whatsapp || '';
+        return acc;
+      }, {});
+    }
+
+    let tenantIdByEmail = {};
+    if (emailsWithoutTenant.length) {
+      const { data: users } = await supabase
+        .from('users')
+        .select('email, tenant_id')
+        .in('email', emailsWithoutTenant);
+
+      tenantIdByEmail = (users || []).reduce((acc, u) => {
+        if (u?.email && u?.tenant_id) acc[u.email] = u.tenant_id;
+        return acc;
+      }, {});
+
+      const missingTenantIds = [...new Set(Object.values(tenantIdByEmail).filter(Boolean))]
+        .filter((id) => !tenantPhoneById[id]);
+
+      if (missingTenantIds.length) {
+        const { data: extraTenants } = await supabase
+          .from('tenants')
+          .select('id, admin_whatsapp')
+          .in('id', missingTenantIds);
+
+        for (const t of (extraTenants || [])) {
+          tenantPhoneById[t.id] = t.admin_whatsapp || '';
+        }
+      }
+    }
+
+    return res.json({
+      proofs: proofs.map((proof) => ({
+        ...proof,
+        adminWhatsapp: tenantPhoneById[proof.tenantId || tenantIdByEmail[proof.tenantEmail]] || '',
+      })),
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function approvePaymentProof(req, res, next) {
+  try {
+    assertAdminPassword(req);
+
+    const { proofId } = req.params;
+    if (!proofId) throw new ValidationError('proofId es requerido');
+
+    const proof = await getPaymentProofById(proofId);
+    if (!proof.tenantId) {
+      throw new NotFoundError('No se encontró tenant asociado al comprobante');
+    }
+
+    if (!['inicial', 'profesional', 'custom'].includes(proof.plan)) {
+      throw new ValidationError('El comprobante no tiene un plan válido para aprobar');
+    }
+
+    const now = new Date();
+    const currentPeriodEnd = new Date(now);
+    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+
+    const { error } = await supabase
+      .from('subscriptions')
+      .upsert({
+        tenant_id: proof.tenantId,
+        plan: proof.plan,
+        status: 'active',
+        current_period_start: now.toISOString(),
+        current_period_end: currentPeriodEnd.toISOString(),
+        cancel_at_period_end: false,
+        updated_at: now.toISOString(),
+      }, {
+        onConflict: 'tenant_id',
+      });
+
+    if (error) throw error;
+
+    logger.info({ proofId, tenantId: proof.tenantId, plan: proof.plan }, 'Payment proof approved and subscription updated');
+
+    return res.json({
+      success: true,
+      message: `Plan ${proof.plan} activado para el tenant.`,
+      tenantId: proof.tenantId,
+      plan: proof.plan,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getAdminPaymentProofImage(req, res, next) {
+  try {
+    assertAdminPassword(req);
+
+    const { proofId } = req.params;
+    if (!proofId) throw new ValidationError('proofId es requerido');
+
+    const file = await downloadPaymentProof(proofId);
+
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('Cache-Control', 'private, max-age=60');
+    return res.send(file.buffer);
   } catch (error) {
     return next(error);
   }
@@ -83,4 +205,6 @@ async function getAdminPaymentProofs(req, res, next) {
 module.exports = {
   createPaymentProof,
   getAdminPaymentProofs,
+  approvePaymentProof,
+  getAdminPaymentProofImage,
 };

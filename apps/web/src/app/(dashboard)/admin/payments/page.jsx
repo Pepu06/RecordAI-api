@@ -139,32 +139,52 @@ function AdminPaymentsList() {
   return (
     <div className={s.list}>
       {proofs.map(proof => (
-        <PaymentProofCard key={proof.id} proof={proof} />
+        <PaymentProofCard key={proof.id} proof={proof} onActionDone={loadProofs} />
       ))}
     </div>
   );
 }
 
-function PaymentProofCard({ proof }) {
+function PaymentProofCard({ proof, onActionDone }) {
   const [processing, setProcessing] = useState(false);
 
+  const adminWhatsappRaw = proof.adminWhatsapp || '';
+  const adminWhatsappDigits = adminWhatsappRaw.replace(/\D/g, '');
+  const adminWhatsappLink = adminWhatsappDigits ? `https://wa.me/${adminWhatsappDigits}` : '';
+
   async function handleApprove() {
-    setProcessing(true);
-    // TODO: Llamar a API para aprobar
-    // await api.post(`/admin/payment-proofs/${proof.id}/approve`)
-    alert('Comprobante aprobado (TODO: implementar)');
-    setProcessing(false);
+    try {
+      setProcessing(true);
+      const adminPassword = sessionStorage.getItem('admin_auth_password') || 'autoagenda2026';
+      const res = await fetch(`${API_URL}/admin/payment-proofs/${proof.id}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': adminPassword,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || 'No se pudo aprobar el comprobante');
+      }
+
+      alert(`✅ Comprobante aprobado. Plan activado: ${proof.plan}`);
+      if (onActionDone) onActionDone();
+    } catch (err) {
+      alert(err?.message || 'No se pudo aprobar el comprobante');
+    } finally {
+      setProcessing(false);
+    }
   }
 
   async function handleReject() {
-    const reason = prompt('Motivo del rechazo:');
-    if (!reason) return;
-    
-    setProcessing(true);
-    // TODO: Llamar a API para rechazar
-    // await api.post(`/admin/payment-proofs/${proof.id}/reject`, { reason })
-    alert('Comprobante rechazado (TODO: implementar)');
-    setProcessing(false);
+    if (!adminWhatsappLink) {
+      alert('Este cliente no tiene admin_whatsapp configurado.');
+      return;
+    }
+
+    window.open(adminWhatsappLink, '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -179,8 +199,14 @@ function PaymentProofCard({ proof }) {
       
       <div className={s.cardBody}>
         <div className={s.cardRow}>
-          <span className={s.cardLabel}>Monto:</span>
-          <span className={s.cardValue}>{proof.amount ? `$${proof.amount} ARS` : 'A confirmar'}</span>
+          <span className={s.cardLabel}>Teléfono admin:</span>
+          {adminWhatsappLink ? (
+            <a href={adminWhatsappLink} target="_blank" rel="noreferrer" className={s.phoneLink}>
+              {adminWhatsappRaw}
+            </a>
+          ) : (
+            <span className={s.cardValue}>No configurado</span>
+          )}
         </div>
         <div className={s.cardRow}>
           <span className={s.cardLabel}>Fecha:</span>
@@ -190,14 +216,8 @@ function PaymentProofCard({ proof }) {
         </div>
       </div>
 
-      {proof.imageUrl ? (
-        <img src={proof.imageUrl} alt="Comprobante" className={s.cardImage} />
-      ) : (
-        <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Sin imagen adjunta</div>
-      )}
-
       {proof.webViewLink && (
-        <a href={proof.webViewLink} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>
+        <a href={proof.webViewLink} target="_blank" rel="noreferrer" className={s.driveLink}>
           Ver en Google Drive →
         </a>
       )}
@@ -208,14 +228,14 @@ function PaymentProofCard({ proof }) {
           onClick={handleApprove}
           disabled={processing}
         >
-          ✓ Aprobar
+          Aprobar
         </button>
         <button 
           className={`${s.cardBtn} ${s.cardBtnReject}`}
           onClick={handleReject}
           disabled={processing}
         >
-          ✗ Rechazar
+          Rechazar
         </button>
       </div>
     </div>
