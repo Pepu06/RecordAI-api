@@ -138,7 +138,7 @@ async function sendTemplate(phone, templateName, params = [], tenantConfig = {})
     const confirmBtn = buttons.find(b => b.payload?.startsWith('confirm_'));
     if (confirmBtn) {
       const appointmentId = confirmBtn.payload.replace('confirm_', '');
-      const baseUrl = env.BASE_URL || 'http://localhost:3001';
+      const baseUrl = env.BASE_URL;
       text += `\n\n👉 Confirmá o cancelá tu turno aquí:\n${baseUrl}/c/${appointmentId}`;
     }
     return sendWasenderMessage(phone, text, tenantConfig.wasender_api_key);
@@ -225,7 +225,7 @@ function buildTemplateText(templateName, params) {
     );
     const header = Array.isArray(params) ? '' : ((params?.header || []).find(p => p?.name === 'encabezado')?.value || '');
     const lines = [`📅 Recordatorio de turno${header ? ` con ${header}` : ''}`];
-    if (body.nombre_cliente)   lines.push(`\nHola ${body.nombre_cliente},como estas? 👋`);
+    if (body.nombre_cliente)   lines.push(`\nHola ${body.nombre_cliente}, como estas? 👋`);
     if (body.mensaje_editable) lines.push(body.mensaje_editable);
     if (body.fecha)            lines.push(`📆 Fecha: ${body.fecha}`);
     if (body.hora)             lines.push(`🕐 Hora: ${body.hora}`);

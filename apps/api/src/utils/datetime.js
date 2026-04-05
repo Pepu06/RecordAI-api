@@ -17,7 +17,7 @@ function formatTemplateHour(dateInput, options = {}) {
   const base = formatTime(dateInput, options);
   if (timeFormat !== '24h') return base;
   if (/\bhs\.?$/i.test(base.trim())) return base;
-  return `${base} hs.`;
+  return `${base} hs`;
 }
 
 module.exports = { useHour12, formatTime, formatTemplateHour };

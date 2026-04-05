@@ -13,7 +13,7 @@ function hasReminderConfig(tenant) {
 async function sendFollowUp({ appointmentId }) {
   const { data: appointment } = await supabase
     .from('appointments')
-    .select('*, contact:contacts(*), service:services(*), tenant:tenants(timezone, time_format, business_name, message_template, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key)')
+    .select('*, contact:contacts(*), service:services(*), tenant:tenants(timezone, time_format, business_name, message_template, location, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key)')
     .eq('id', appointmentId)
     .maybeSingle();
 
@@ -45,6 +45,7 @@ async function sendFollowUp({ appointmentId }) {
 
   const encabezado = appointment.tenant?.business_name;
   const mensajeEditable = `Aún no confirmaste tu cita del ${date} ${time}.`;
+  const ubicacion = appointment.tenant?.location || '';
 
   const tenantConfig = {
     provider: appointment.tenant?.whatsapp_provider || 'meta',
@@ -60,6 +61,7 @@ async function sendFollowUp({ appointmentId }) {
       { name: 'mensaje_editable', value: mensajeEditable },
       { name: 'fecha', value: date },
       { name: 'hora', value: time },
+      { name: 'ubicacion', value: ubicacion },
     ],
     buttons: [
       { index: 0, payload: `confirm_${appointmentId}` },
