@@ -13,41 +13,51 @@ const steps = [
     title: 'Conectá tu cuenta',
     desc: 'Ingresá al dashboard, autorizá el acceso a tu Google Calendar y configurá tu número de WhatsApp. Listo en menos de 2 minutos.',
     syntax: null,
+    example: null,
   },
   {
     num: 2,
-    title: 'Creá el evento en Google Calendar',
-    desc: 'Usá la sintaxis correcta en el título y la descripción del evento para que el sistema identifique al cliente y su número automáticamente.',
+    title: 'Título del evento: Nombre - Servicio',
+    desc: 'El título del evento debe seguir el formato "Nombre del paciente - Servicio". AutoAgenda extrae automáticamente el nombre del paciente y el tipo de servicio.',
     syntax: [
       {
         tag: 'Título del evento',
         tagClass: 'syntaxTagBlue',
-        label: 'Nombre del cliente seguido del teléfono entre corchetes',
+        label: 'Nombre completo, guion, nombre del servicio',
         example: (
           <>
-            Juan Pérez <span className={s.syntaxHighlight}>[5491140962011]</span>
+            <span className={s.syntaxHighlight}>Micaela Sosa</span>
+            {' - '}
+            <span className={s.syntaxHighlight}>Consulta</span>
           </>
         ),
-        tip: 'El número puede incluir o no el +54/54911 — AutoAgenda lo normaliza solo. Lo que escribas antes de los corchetes es el nombre que verá el cliente en el mensaje.',
-      },
-      {
-        tag: 'Descripción del evento',
-        tagClass: 'syntaxTagGreen',
-        label: 'Servicio o motivo de la cita entre paréntesis',
-        example: (
-          <>
-            <span className={s.syntaxHighlight}>(Consulta médica)</span>
-          </>
-        ),
-        tip: 'Lo que escribas entre paréntesis aparece como nombre del servicio en el recordatorio. Podés poner cualquier texto: "Limpieza dental", "Reunión", "Corte y color", etc.',
+        tip: 'El texto antes del guion es el nombre del cliente. El texto después es el servicio (ej: Consulta, Limpieza dental, Corte y color). Si el servicio no existe, se crea automáticamente.',
       },
     ],
+    example: null,
   },
   {
     num: 3,
-    title: 'El sistema trabaja por vos',
-    desc: 'AutoAgenda lee el evento, extrae el nombre, teléfono y servicio, y envía el mensaje de recordatorio automáticamente por WhatsApp en el horario configurado. El cliente confirma o cancela con un solo toque.',
+    title: 'Descripción del evento: datos del paciente',
+    desc: 'En la descripción completá los datos del paciente. El teléfono entre [ ] es obligatorio para enviar el WhatsApp. DNI, fecha de nacimiento y email son opcionales y se guardan automáticamente en el contacto.',
     syntax: null,
+    example: {
+      title: 'Micaela Sosa - Consulta',
+      lines: [
+        { label: 'Nombre:',      value: 'Micaela Sosa' },
+        { label: 'Teléfono:',    value: '[1538795045]', highlight: true },
+        { label: 'DNI:',         value: '36914783' },
+        { label: 'Nacimiento:',  value: '21/03/1995' },
+        { label: 'Mail:',        value: 'micaela@email.com' },
+      ],
+    },
+  },
+  {
+    num: 4,
+    title: 'El sistema trabaja por vos',
+    desc: 'AutoAgenda lee el evento, extrae los datos del cliente y envía el recordatorio automáticamente por WhatsApp. El cliente confirma o cancela con un solo toque.',
+    syntax: null,
+    example: null,
   },
 ];
 
@@ -180,9 +190,9 @@ export default function LandingPage() {
           <div className={s.sectionLabel}>
             <span>📋</span> Guía de uso
           </div>
-          <h2 className={s.sectionTitle}>¿Cómo funciona?</h2>
+          <h2 className={s.sectionTitle}>Cómo organizar tu agenda para AutoAgenda</h2>
           <p className={s.sectionSubtitle}>
-            Tres pasos simples para automatizar tus confirmaciones de turno.
+            Cuatro pasos simples para automatizar tus confirmaciones de turno.
           </p>
           <div className={s.steps}>
             {steps.map((step) => (
@@ -209,6 +219,25 @@ export default function LandingPage() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {step.example && (
+                    <div className={s.eventPreview}>
+                      <div className={s.eventPreviewHeader}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <span>Evento en Google Calendar</span>
+                      </div>
+                      <div className={s.eventPreviewTitle}>{step.example.title}</div>
+                      <div className={s.eventPreviewDesc}>
+                        {step.example.lines.map((line) => (
+                          <div key={line.label} className={s.eventPreviewLine}>
+                            <span className={s.eventPreviewLabel}>{line.label}</span>
+                            <span className={line.highlight ? s.eventPreviewValueHL : s.eventPreviewValue}>
+                              {line.value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

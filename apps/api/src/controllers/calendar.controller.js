@@ -7,53 +7,76 @@ const { JobName } = require('@autoagenda/shared');
 const { AppError } = require('../errors');
 const { formatTime, formatTemplateHour } = require('../utils/datetime');
 
-const PHONE_REGEX = /\+?\d[\d\s()-]{7,}/;
-
 function onlyDigits(value) {
   return String(value || '').replace(/\D/g, '');
 }
 
-function normalizePhone(rawPhone = '') {
-  const raw = String(rawPhone || '').trim();
-  const digits = onlyDigits(raw);
+/**
+ * Normaliza un número argentino tomando los últimos 8 dígitos y anteponiendo +54911.
+ * Ej: "1538795045" → "+5491138795045"
+ *     "+54911 3879-5045" → "+5491138795045"
+ */
+function normalizePhone(raw = '') {
+  const digits = onlyDigits(String(raw));
   if (!digits) return null;
-
-  // Already international with country code
-  if (raw.startsWith('+') || digits.startsWith('54') || digits.startsWith('549')) {
-    return `+${digits}`;
-  }
-
-  // Argentina local mobile format without country code, e.g. 11XXXXXXXX
-  if (digits.length === 10 && digits.startsWith('11')) {
-    return `+549${digits}`;
-  }
-
-  // Generic fallback
-  return `+${digits}`;
+  const last8 = digits.slice(-8);
+  return last8.length === 8 ? `+54911${last8}` : null;
 }
 
-function extractPhoneFromSummary(summary = '') {
-  // Only match bracketed numbers: [+54911...] or [11...]
-  const bracketMatch = summary.match(/\[\s*(\+?\d[\d\s()-]{7,})\s*\]/);
-  return bracketMatch ? normalizePhone(bracketMatch[1]) : null;
+/**
+ * Extrae teléfono, DNI, fecha de nacimiento y email desde la descripción del evento.
+ * Formato esperado (todo opcional excepto teléfono):
+ *   Teléfono: [1538795045]
+ *   DNI: 36914783
+ *   Nacimiento: 21/03/1995
+ *   Mail: micaela@email.com
+ */
+function extractDataFromDescription(description = '') {
+  const desc = description || '';
+
+  // Teléfono: número entre corchetes [ ]
+  const phoneMatch = desc.match(/\[\s*(\+?[\d\s\-(). ]{6,})\s*\]/);
+  const phone = phoneMatch ? normalizePhone(phoneMatch[1]) : null;
+
+  // DNI: etiqueta "DNI:" seguida del número, o 8 dígitos solos (XX.XXX.XXX o XXXXXXXX)
+  const dniLabelMatch = desc.match(/DNI\s*[:\s]\s*([\d.]{8,11})/i);
+  const dniBarMatch   = desc.match(/\b(\d{2}\.?\d{3}\.?\d{3})\b/);
+  const rawDni = dniLabelMatch ? dniLabelMatch[1] : (dniBarMatch ? dniBarMatch[1] : null);
+  const dni = rawDni ? rawDni.replace(/\./g, '') : null;
+
+  // Fecha de nacimiento: etiqueta o formato DD/MM/AAAA, DD.MM.AAAA
+  const dobMatch = desc.match(/(?:nacimiento|nac|fecha)[^:]*[:\s]\s*(\d{2}[\/.]?\d{2}[\/.]?\d{4})/i)
+    || desc.match(/\b(\d{2})[\/.](\d{2})[\/.](\d{4})\b/);
+  let birthDate = null;
+  if (dobMatch) {
+    // Puede ser grupo 1 completo (label match) o grupos 1+2+3 (bare match)
+    birthDate = dobMatch[3]
+      ? `${dobMatch[1]}/${dobMatch[2]}/${dobMatch[3]}`
+      : dobMatch[1].replace(/\./g, '/');
+  }
+
+  // Email estándar
+  const emailMatch = desc.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+  const email = emailMatch ? emailMatch[0] : null;
+
+  return { phone, dni, birthDate, email };
 }
 
-function extractClientName(summary = '') {
-  const phoneMatch = summary.match(PHONE_REGEX);
-  const beforePhone = phoneMatch
-    ? summary.slice(0, phoneMatch.index)
-    : summary.replace(PHONE_REGEX, '');
-
-  const cleaned = beforePhone
+/**
+ * Extrae nombre y servicio del título del evento.
+ * Formato esperado: "Nombre - Servicio"  (ej: "Micaela Sosa - Consulta")
+ * Si no hay guion, todo es el nombre.
+ */
+function extractFromTitle(summary = '') {
+  const clean = (summary || '')
     .replace(/\s*-\s*(CONFIRMADO|CANCELADO)$/i, '')
     .trim();
-
-  const conMatch = cleaned.match(/\bcon\b\s*(.+)$/i);
-  const fromCon = conMatch ? conMatch[1] : cleaned;
-
-  return fromCon
-    .replace(/[\[\](){},:;\-\s]+$/g, '')
-    .trim() || 'Cliente';
+  const dashIdx = clean.indexOf(' - ');
+  if (dashIdx === -1) return { name: clean || 'Cliente', service: null };
+  return {
+    name:    clean.slice(0, dashIdx).trim() || 'Cliente',
+    service: clean.slice(dashIdx + 3).trim() || null,
+  };
 }
 
 function hasReminderConfig(tenant) {
@@ -148,7 +171,7 @@ async function events(req, res, next) {
         const isAllDay = !e.start?.dateTime;
         const start = e.start?.dateTime || `${e.start.date}T12:00:00`;
         const colorId = e.colorId || null;
-        const phone = extractPhoneFromSummary(e.summary || '');
+        const phone = extractDataFromDescription(e.description || '').phone;
         const displayTitle = (e.summary || '(Sin título)').replace(/\s*-\s*(CONFIRMADO|CANCELADO)$/i, '').trim();
         // DB status is authoritative; fall back to Google Calendar color
         const status = dbStatusMap[e.id] || COLOR_STATUS[colorId] || null;
@@ -202,12 +225,18 @@ async function events(req, res, next) {
 
         if (alreadyExists) continue;
 
+        const { name: contactName } = extractFromTitle(event.title);
+        const { dni, birthDate, email: descEmail } = extractDataFromDescription(event.description || '');
+
         const { data: createdContact, error: createContactError } = await supabase
           .from('contacts')
           .insert({
             tenant_id: req.tenantId,
-            name: extractClientName(event.title),
+            name: contactName,
             phone: event.phone,
+            ...(descEmail   && { email:      descEmail }),
+            ...(dni         && { dni }),
+            ...(birthDate   && { birth_date: birthDate }),
           })
           .select('id, name, phone')
           .single();
@@ -233,16 +262,13 @@ async function events(req, res, next) {
         allServices = [createdService];
       }
 
-      // Match event description to a service from parentheses: (Service Name)
-      // If found in parentheses but doesn't exist → create it.
-      // If no parentheses → use default service.
-      async function matchService(description = '', durationMinutes = 30) {
-        if (!description) return allServices[0];
+      // Match service from event title: "Nombre - Servicio"
+      // If found in title but doesn't exist → create it.
+      // If no service in title → use default service.
+      async function matchService(titleService, durationMinutes = 30) {
+        if (!titleService) return allServices[0];
 
-        const parenMatch = description.match(/\(([^)]+)\)/);
-        if (!parenMatch) return allServices[0];
-
-        const serviceName = parenMatch[1].trim();
+        const serviceName = titleService.trim();
         const matched = allServices.find(s => s.name.toLowerCase() === serviceName.toLowerCase());
         if (matched) return matched;
 
@@ -276,7 +302,8 @@ async function events(req, res, next) {
         const eventDuration = event.end && event.start
           ? Math.round((new Date(event.end) - new Date(event.start)) / 60000)
           : 30;
-        const service = await matchService(event.description, eventDuration);
+        const { service: titleService } = extractFromTitle(event.title);
+        const service = await matchService(titleService, eventDuration);
 
         const { data: newAppointment, error: createAppointmentError } = await supabase
           .from('appointments')
@@ -361,8 +388,8 @@ async function remindEvent(req, res, next) {
     const event = await getCalendarEvent(accessToken, eventId);
     if (!event) throw new AppError('Evento no encontrado', 404);
 
-    const phone = extractPhoneFromSummary(event.summary || '');
-    if (!phone) throw new AppError('No se encontró número de teléfono en el título del evento', 400);
+    const phone = extractDataFromDescription(event.description || '').phone;
+    if (!phone) throw new AppError('No se encontró número de teléfono entre [ ] en la descripción del evento', 400);
 
     const start = event.start?.dateTime || (event.start?.date ? `${event.start.date}T12:00:00` : null);
 
@@ -378,7 +405,7 @@ async function remindEvent(req, res, next) {
     if (appointment?.contact?.name) {
       clientName = appointment.contact.name;
     } else {
-      clientName = extractClientName(event.summary || '');
+      clientName = extractFromTitle(event.summary || '').name;
     }
 
     // Fetch tenant settings
@@ -502,8 +529,8 @@ async function createEvent(req, res, next) {
       const attendees = contact.email ? [contact.email] : [];
 
       const calEvent = await createCalendarEvent(accessToken, {
-        summary: `${contact.name} [${contact.phone}]`,
-        description: `(${service.name})`,
+        summary: `${contact.name} - ${service.name}`,
+        description: `Nombre: ${contact.name}\nTeléfono: [${contact.phone}]${contact.email ? `\nMail: ${contact.email}` : ''}`,
         startDateTime: startDate.toISOString(),
         endDateTime: endDate.toISOString(),
         attendees,

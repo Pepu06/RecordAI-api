@@ -9,7 +9,7 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', dni: '', birthDate: '', notes: '' });
   const [error, setError] = useState('');
 
   async function fetchContacts() {
@@ -23,13 +23,13 @@ export default function ContactsPage() {
 
   function startEdit(contact) {
     setEditId(contact.id);
-    setForm({ name: contact.name, phone: contact.phone, email: contact.email || '', notes: contact.notes || '' });
+    setForm({ name: contact.name, phone: contact.phone, email: contact.email || '', dni: contact.dni || '', birthDate: contact.birthDate || '', notes: contact.notes || '' });
     setShowForm(true);
   }
 
   function cancelForm() {
     setEditId(null);
-    setForm({ name: '', phone: '', email: '', notes: '' });
+    setForm({ name: '', phone: '', email: '', dni: '', birthDate: '', notes: '' });
     setShowForm(false);
     setError('');
   }
@@ -88,11 +88,23 @@ export default function ContactsPage() {
             required
           />
           <input
-            placeholder="Email (opcional, para invitar como participante en Calendar)"
+            placeholder="Email (opcional)"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             className={styles.input}
             type="email"
+          />
+          <input
+            placeholder="DNI (opcional, ej: 36914783)"
+            value={form.dni}
+            onChange={(e) => setForm({ ...form, dni: e.target.value })}
+            className={styles.input}
+          />
+          <input
+            placeholder="Fecha de nacimiento (opcional, ej: 21/03/1995)"
+            value={form.birthDate}
+            onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
+            className={styles.input}
           />
           <input
             placeholder="Notas (opcional)"
@@ -123,7 +135,9 @@ export default function ContactsPage() {
               <tr>
                 <th>Nombre</th>
                 <th>Teléfono</th>
-                <th>Notas</th>
+                <th>Email</th>
+                <th>DNI</th>
+                <th>Nacimiento</th>
                 <th></th>
               </tr>
             </thead>
@@ -132,7 +146,9 @@ export default function ContactsPage() {
                 <tr key={c.id}>
                   <td>{c.name}</td>
                   <td>{c.phone}</td>
-                  <td>{c.notes || '—'}</td>
+                  <td>{c.email || '—'}</td>
+                  <td>{c.dni || '—'}</td>
+                  <td>{c.birthDate || '—'}</td>
                   <td style={{ display: 'flex', gap: 6 }}>
                     <button onClick={() => startEdit(c)} className={styles.btnPrimary}>
                       Editar
