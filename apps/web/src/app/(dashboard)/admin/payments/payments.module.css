@@ -2,6 +2,7 @@
   width: 100%;
   max-width: 980px;
   margin-inline: auto;
+  padding: 16px;
 }
 
 .loading {
@@ -16,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 20px;
 }
 
 .loginCard {
@@ -93,6 +94,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .title {
@@ -112,6 +114,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .logoutBtn:hover {
@@ -121,7 +124,7 @@
 }
 
 .emptyState {
-  min-height: 320px;
+  min-height: 280px;
   border: 1px dashed var(--border);
   border-radius: var(--radius-2xl);
   display: flex;
@@ -131,6 +134,7 @@
   gap: 8px;
   color: var(--text-3);
   background: var(--surface);
+  padding: 20px;
 }
 
 .emptyIcon {
@@ -139,6 +143,7 @@
 
 .emptyText {
   font-size: 14px;
+  text-align: center;
 }
 
 .list {
@@ -168,11 +173,13 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
+  word-break: break-word;
 }
 
 .cardMeta {
   font-size: 12px;
   color: var(--text-3);
+  word-break: break-all;
 }
 
 .cardBadge {
@@ -185,6 +192,8 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
   padding: 4px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cardBody {
@@ -195,20 +204,23 @@
 
 .cardRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
 }
 
 .cardLabel {
   font-size: 12px;
   color: var(--text-3);
+  flex-shrink: 0;
 }
 
 .cardValue {
   font-size: 13px;
   color: var(--text-2);
   font-weight: 600;
+  text-align: right;
+  word-break: break-word;
 }
 
 .phoneLink {
@@ -216,6 +228,7 @@
   color: var(--accent);
   font-weight: 700;
   text-decoration: none;
+  word-break: break-all;
 }
 
 .phoneLink:hover {
@@ -226,11 +239,12 @@
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  font-size: 15px;
+  font-size: 13px;
   color: var(--accent);
   font-weight: 700;
   text-decoration: none;
   padding: 2px 0;
+  word-break: break-word;
 }
 
 .driveLink:hover {
@@ -241,6 +255,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: 4px;
 }
 
 .cardBtn {
@@ -264,19 +279,140 @@
   border: 1px solid rgba(64, 201, 162, 0.3);
 }
 
+.cardBtnApprove:hover:not(:disabled) {
+  background: rgba(64, 201, 162, 0.2);
+}
+
 .cardBtnReject {
   background: var(--red-bg);
   color: var(--red);
   border: 1px solid var(--red-border);
 }
 
+.cardBtnReject:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Responsive para tablets */
+@media (max-width: 768px) {
+  .page {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .list {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .loginCard {
+    padding: 24px;
+  }
+}
+
+/* Responsive para móviles */
 @media (max-width: 640px) {
+  .page {
+    padding: 12px;
+  }
+
+  .loginPage {
+    padding: 16px;
+    min-height: calc(100dvh - 80px);
+  }
+
+  .loginCard {
+    padding: 20px;
+  }
+
+  .loginTitle {
+    font-size: 20px;
+  }
+
   .header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .logoutBtn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .list {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cardBadge {
+    align-self: flex-start;
+  }
+
+  .cardRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .cardValue,
+  .phoneLink {
+    text-align: left;
   }
 
   .cardActions {
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .cardBtn {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .driveLink {
+    font-size: 13px;
+  }
+
+  .emptyState {
+    min-height: 220px;
+    padding: 16px;
+  }
+}
+
+/* Responsive para móviles muy pequeños */
+@media (max-width: 380px) {
+  .loginCard {
+    padding: 16px;
+  }
+
+  .card {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .cardTitle {
+    font-size: 14px;
+  }
+
+  .title {
+    font-size: 20px;
   }
 }
