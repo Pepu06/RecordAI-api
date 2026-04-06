@@ -28,8 +28,12 @@ async function getDriveAccessToken() {
   return data.access_token;
 }
 
-async function findFolderByName(accessToken, name) {
-  const q = `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+async function findFolderByName(accessToken, name, parentId = null) {
+  let q = `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  if (parentId) {
+    q += ` and '${parentId}' in parents`;
+  }
+  
   const params = new URLSearchParams({
     q,
     pageSize: '1',
@@ -42,28 +46,34 @@ async function findFolderByName(accessToken, name) {
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data?.error?.message || 'Could not search AutoAgenda folder');
+    throw new Error(data?.error?.message || 'Could not search folder');
   }
 
   return data?.files?.[0] || null;
 }
 
-async function createFolder(accessToken, name) {
+async function createFolder(accessToken, name, parentId = null) {
+  const payload = {
+    name,
+    mimeType: 'application/vnd.google-apps.folder',
+  };
+  
+  if (parentId) {
+    payload.parents = [parentId];
+  }
+
   const res = await fetch(`${DRIVE_API_BASE}/files`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      name,
-      mimeType: 'application/vnd.google-apps.folder',
-    }),
+    body: JSON.stringify(payload),
   });
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.error?.message || 'Could not create AutoAgenda folder');
+    throw new Error(data?.error?.message || 'Could not create folder');
   }
 
   return data;
@@ -76,6 +86,22 @@ async function getAutoAgendaFolderId(accessToken) {
   if (existing?.id) return existing.id;
 
   const created = await createFolder(accessToken, 'AutoAgenda');
+  return created.id;
+}
+
+async function getStatusFolderId(accessToken, rootFolderId, status) {
+  const folderNames = {
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+  };
+  
+  const folderName = folderNames[status] || 'Pending';
+  
+  const existing = await findFolderByName(accessToken, folderName, rootFolderId);
+  if (existing?.id) return existing.id;
+  
+  const created = await createFolder(accessToken, folderName, rootFolderId);
   return created.id;
 }
 
@@ -99,16 +125,18 @@ function buildPreviewUrl(fileId) {
 
 async function uploadPaymentProof({ tenantId, tenantName, tenantEmail, plan, mimeType, base64Data }) {
   const accessToken = await getDriveAccessToken();
-  const folderId = await getAutoAgendaFolderId(accessToken);
+  const rootFolderId = await getAutoAgendaFolderId(accessToken);
+  const pendingFolderId = await getStatusFolderId(accessToken, rootFolderId, 'pending');
 
   const ext = mimeType?.split('/')[1] || 'jpg';
   const safePlan = (plan || 'unknown').toLowerCase();
   const safeTenant = (tenantName || tenantId || 'tenant').replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 40);
-  const fileName = `proof_${safePlan}_${safeTenant}_${Date.now()}.${ext}`;
+  const safeEmail = (tenantEmail || 'no-email').replace(/[^a-zA-Z0-9@._-]/g, '_').slice(0, 30);
+  const fileName = `${safePlan}_${safeEmail}_${safeTenant}_${Date.now()}.${ext}`;
 
   const metadata = {
     name: fileName,
-    parents: [folderId],
+    parents: [pendingFolderId],
     appProperties: {
       autoagendaType: 'paymentProof',
       tenantId: String(tenantId || ''),
@@ -159,13 +187,12 @@ async function uploadPaymentProof({ tenantId, tenantName, tenantEmail, plan, mim
 
 async function listPaymentProofs() {
   const accessToken = await getDriveAccessToken();
-  const folderId = await getAutoAgendaFolderId(accessToken);
+  const rootFolderId = await getAutoAgendaFolderId(accessToken);
+  const pendingFolderId = await getStatusFolderId(accessToken, rootFolderId, 'pending');
 
   const q = [
-    `'${folderId}' in parents`,
+    `'${pendingFolderId}' in parents`,
     'trashed = false',
-    "appProperties has { key='autoagendaType' and value='paymentProof' }",
-    "appProperties has { key='status' and value='pending' }",
   ].join(' and ');
 
   const params = new URLSearchParams({
@@ -223,8 +250,28 @@ async function getPaymentProofById(fileId) {
 
 async function updatePaymentProofStatus(fileId, status) {
   const accessToken = await getDriveAccessToken();
+  const rootFolderId = await getAutoAgendaFolderId(accessToken);
+  const targetFolderId = await getStatusFolderId(accessToken, rootFolderId, status);
 
-  const res = await fetch(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=id`, {
+  // Get current file to remove from old parent
+  const fileRes = await fetch(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=id,parents`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const fileData = await fileRes.json();
+  if (!fileRes.ok) {
+    throw new Error(fileData?.error?.message || 'Could not fetch file info');
+  }
+
+  const previousParents = fileData.parents?.join(',') || '';
+
+  // Move file and update status in single request
+  const updateParams = new URLSearchParams({
+    addParents: targetFolderId,
+    removeParents: previousParents,
+    fields: 'id,parents',
+  });
+
+  const res = await fetch(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?${updateParams}`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${accessToken}`,
