@@ -188,6 +188,21 @@ export default function DashboardLayout({ children }) {
           </button>
         </div>
 
+        {/* Mobile-only menu header */}
+        <div className={styles.mobileMenuHeader}>
+          <div className={styles.mobileMenuAvatar}>
+            {profilePicture ? (
+              <img src={profilePicture} alt={businessName} />
+            ) : (
+              <span>{initials}</span>
+            )}
+          </div>
+          <div>
+            <div className={styles.mobileMenuName}>{businessName}</div>
+            <div className={styles.mobileMenuRole}>Administrador</div>
+          </div>
+        </div>
+
         <nav className={styles.nav}>
           {navItems.map((item) => (
             <a
