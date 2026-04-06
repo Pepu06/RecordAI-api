@@ -89,6 +89,7 @@ export default function DashboardLayout({ children }) {
   const router   = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState({ initials: 'MN', businessName: 'Mi Negocio', profilePicture: null });
 
   useEffect(() => {
@@ -118,6 +119,11 @@ export default function DashboardLayout({ children }) {
     }
   }, []);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   function handleLogout() {
     clearAuth();
     router.push('/login');
@@ -131,11 +137,42 @@ export default function DashboardLayout({ children }) {
     });
   }
 
+  function toggleMobileMenu() {
+    setMobileMenuOpen(prev => !prev);
+  }
+
   const { initials, businessName, profilePicture } = profile;
 
   return (
     <div className={styles.layout}>
-      <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
+      {/* Mobile Header */}
+      <div className={styles.mobileHeader}>
+        <button className={styles.hamburger} onClick={toggleMobileMenu} aria-label="Toggle menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div className={styles.mobileLogo}>
+          <img src="/logo_autoagenda.png" alt="AutoAgenda" className={styles.logoMark} />
+          <span className={styles.logoText}>AutoAgenda</span>
+        </div>
+        <div className={styles.mobileAvatar}>
+          {profilePicture ? (
+            <img src={profilePicture} alt={businessName} />
+          ) : (
+            <span>{initials}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div className={styles.overlay} onClick={toggleMobileMenu} />
+      )}
+
+      <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileMenuOpen ? styles.mobileOpen : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
             <img src="/logo_autoagenda.png" alt="AutoAgenda" className={styles.logoMark} />
