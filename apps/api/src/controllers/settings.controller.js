@@ -54,4 +54,20 @@ async function updateSettings(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-module.exports = { getSettings, updateSettings };
+async function deleteAccount(req, res, next) {
+  try {
+    const tenantId = req.tenantId;
+
+    // Delete in dependency order
+    await supabase.from('message_logs').delete().eq('tenant_id', tenantId);
+    await supabase.from('appointments').delete().eq('tenant_id', tenantId);
+    await supabase.from('contacts').delete().eq('tenant_id', tenantId);
+    await supabase.from('services').delete().eq('tenant_id', tenantId);
+    await supabase.from('users').delete().eq('tenant_id', tenantId);
+    await supabase.from('tenants').delete().eq('id', tenantId);
+
+    return res.json({ success: true });
+  } catch (err) { return next(err); }
+}
+
+module.exports = { getSettings, updateSettings, deleteAccount };

@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '../../../lib/api';
+import { clearAuth } from '../../../lib/auth';
 import styles from './settings.module.css';
 
 const TIMEZONES = [
@@ -57,11 +59,14 @@ function hoursOptions(min, max) {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [settings, setSettings] = useState(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     api.get('/settings').then(res => {
@@ -127,6 +132,18 @@ export default function SettingsPage() {
       setError(err.message || 'Error al guardar');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await api.delete('/settings/account');
+      clearAuth();
+      router.replace('/login');
+    } catch (err) {
+      setError(err.message || 'Error al eliminar la cuenta');
+      setDeleting(false);
     }
   }
 
@@ -436,6 +453,34 @@ export default function SettingsPage() {
               </div>
             </Field>
           )}
+        </div>
+      </section>
+
+      {/* ZONA DE PELIGRO */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle} style={{ color: 'var(--red)' }}>Zona de peligro</h2>
+          <p className={styles.sectionDesc}>Esta acción es irreversible. Se eliminarán todos los datos de tu cuenta.</p>
+        </div>
+        <div className={styles.fields}>
+          <Field label="Eliminar cuenta" hint="Escribí ELIMINAR para confirmar y luego presioná el botón.">
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                className={styles.input}
+                placeholder="Escribí ELIMINAR"
+                value={deleteConfirm}
+                onChange={e => setDeleteConfirm(e.target.value)}
+                style={{ maxWidth: 220 }}
+              />
+              <button
+                className={styles.btnDanger}
+                disabled={deleteConfirm !== 'ELIMINAR' || deleting}
+                onClick={handleDeleteAccount}
+              >
+                {deleting ? 'Eliminando...' : 'Eliminar cuenta'}
+              </button>
+            </div>
+          </Field>
         </div>
       </section>
 

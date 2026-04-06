@@ -284,6 +284,25 @@
 .errorText { font-size: 13px; color: var(--red); }
 .savedText  { font-size: 13px; color: var(--accent); font-weight: 600; }
 
+.btnDanger {
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--red);
+  border: 1.5px solid var(--red);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btnDanger:hover:not(:disabled) {
+  background: var(--red);
+  color: #fff;
+}
+.btnDanger:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ── Section split layout (left: info, right: toggle) ── */
 .sectionSplit {
   display: flex;
