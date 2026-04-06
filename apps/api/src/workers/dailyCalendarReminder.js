@@ -51,7 +51,7 @@ async function runDailyReminders() {
       service:services(name),
       tenant:tenants(business_name, message_template, messaging_enabled, timezone, time_format, reminder_type, reminder_time, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key, location, location_mode)
     `)
-    .in('status', ['pending', 'notified', 'confirmed'])
+    .in('status', ['pending', 'notified', 'sin_enviar'])
     .is('reminder_sent_at', null)
     .gte('scheduled_at', windowStart)
     .lte('scheduled_at', windowEnd);

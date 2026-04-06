@@ -373,6 +373,13 @@ async function updateEventStatus(req, res, next) {
       sendUpdates: shouldNotifyByEmail ? 'all' : 'none',
     });
 
+    // Also update DB if there's a matching appointment
+    await supabase
+      .from('appointments')
+      .update({ status })
+      .eq('google_event_id', eventId)
+      .eq('tenant_id', req.tenantId);
+
     return res.json({ success: true, status });
   } catch (err) { return next(err); }
 }

@@ -29,8 +29,8 @@ async function sendReminder({ appointmentId }) {
     return;
   }
 
-  if (appointment.status === 'cancelled') {
-    logger.info({ appointmentId }, 'Skipping reminder, appointment cancelled');
+  if (['confirmed', 'cancelled'].includes(appointment.status)) {
+    logger.info({ appointmentId, status: appointment.status }, 'Skipping reminder, appointment already resolved');
     return;
   }
 
