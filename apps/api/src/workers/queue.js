@@ -24,12 +24,7 @@ const worker = new Worker(
         await sendConfirmation(job.data);
         break;
       }
-      case JobName.SEND_REMINDER: {
-        const { sendReminder } = require('./sendReminder');
-        await sendReminder(job.data);
-        break;
-      }
-      case JobName.SEND_FOLLOW_UP: {
+case JobName.SEND_FOLLOW_UP: {
         const { sendFollowUp } = require('./sendFollowUp');
         await sendFollowUp(job.data);
         break;

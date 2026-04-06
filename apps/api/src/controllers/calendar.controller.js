@@ -328,10 +328,6 @@ async function events(req, res, next) {
             appointmentsQueue.add(name, { appointmentId: newAppointment.id }, opts).catch(() => { });
 
           queueJob(JobName.SEND_CONFIRMATION);
-
-          const { data: tenant } = await supabase.from('tenants').select('timezone, reminder_type, reminder_time').eq('id', req.tenantId).single();
-          const reminderDelay = calcReminderDelay(newAppointment.scheduled_at, tenant?.timezone, tenant?.reminder_type, tenant?.reminder_time);
-          if (reminderDelay > 0) queueJob(JobName.SEND_REMINDER, { delay: reminderDelay });
         }
       }
     }
@@ -555,23 +551,9 @@ async function createEvent(req, res, next) {
 
     queueJob(JobName.SEND_CONFIRMATION);
 
-    const reminderDelay = calcReminderDelay(scheduledAt, tenantSettings?.timezone, tenantSettings?.reminder_type, tenantSettings?.reminder_time);
-    if (reminderDelay > 0) queueJob(JobName.SEND_REMINDER, { delay: reminderDelay });
-
     return res.status(201).json({ success: true, data: convertKeys(appointment) });
   } catch (err) { return next(err); }
 }
 
-function calcReminderDelay(scheduledAt, timezone, reminderType, reminderTime) {
-  const [hh, mm] = (reminderTime || '10:00').split(':').map(Number);
-  const appt = new Date(scheduledAt);
-  const localDateStr = appt.toLocaleDateString('en-CA', { timeZone: timezone || 'UTC' });
-  let [year, month, day] = localDateStr.split('-').map(Number);
-  if (reminderType === 'day_before') day -= 1;
-  const reminderAsUTC = new Date(Date.UTC(year, month - 1, day, hh, mm, 0));
-  const localMs = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: timezone || 'UTC' })).getTime();
-  const utcMs = new Date(reminderAsUTC.toLocaleString('en-US', { timeZone: 'UTC' })).getTime();
-  return new Date(reminderAsUTC.getTime() + (utcMs - localMs)).getTime() - Date.now();
-}
 
 module.exports = { calendarStatus, connect, disconnect, events, createEvent, updateEventStatus, remindEvent };
