@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '../../../lib/api';
 import styles from '../auth.module.css';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
-  const [status, setStatus] = useState('loading'); // loading | success | error
+  const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -26,6 +26,42 @@ export default function VerifyEmailPage() {
       });
   }, [token]);
 
+  if (status === 'loading') {
+    return (
+      <>
+        <h2 className={styles.title}>Verificando...</h2>
+        <p className={styles.subtitle}>Estamos confirmando tu email.</p>
+      </>
+    );
+  }
+
+  if (status === 'success') {
+    return (
+      <>
+        <h2 className={styles.title}>¡Email verificado!</h2>
+        <p className={styles.subtitle}>Tu cuenta está confirmada. Ya podés usar AutoAgenda.</p>
+        <a href="/dashboard" className={styles.button} style={{ display: 'block', textAlign: 'center', marginTop: '16px', textDecoration: 'none' }}>
+          Ir al dashboard →
+        </a>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <h2 className={styles.title}>Enlace inválido</h2>
+      <p className={styles.error}>{message}</p>
+      <a href="/dashboard" className={styles.button} style={{ display: 'block', textAlign: 'center', marginTop: '16px', textDecoration: 'none' }}>
+        Ir al dashboard
+      </a>
+      <p className={styles.link} style={{ marginTop: '16px' }}>
+        <a href="/login">← Volver al login</a>
+      </p>
+    </>
+  );
+}
+
+export default function VerifyEmailPage() {
   return (
     <div className={styles.container}>
       <div className={styles.decorPanel}>
@@ -47,37 +83,9 @@ export default function VerifyEmailPage() {
             <img src="/logo_autoagenda.png" alt="AutoAgenda" className={styles.mobileMark} />
             <span className={styles.mobileBrandName}>AutoAgenda</span>
           </div>
-
-          {status === 'loading' && (
-            <>
-              <h2 className={styles.title}>Verificando...</h2>
-              <p className={styles.subtitle}>Estamos confirmando tu email.</p>
-            </>
-          )}
-
-          {status === 'success' && (
-            <>
-              <h2 className={styles.title}>¡Email verificado!</h2>
-              <p className={styles.subtitle}>Tu cuenta está confirmada. Ya podés usar AutoAgenda.</p>
-              <a href="/dashboard" className={styles.button} style={{ display: 'block', textAlign: 'center', marginTop: '16px', textDecoration: 'none' }}>
-                Ir al dashboard →
-              </a>
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <h2 className={styles.title}>Enlace inválido</h2>
-              <p className={styles.error}>{message}</p>
-              <a href="/dashboard" className={styles.button} style={{ display: 'block', textAlign: 'center', marginTop: '16px', textDecoration: 'none' }}>
-                Ir al dashboard
-              </a>
-            </>
-          )}
-
-          <p className={styles.link} style={{ marginTop: '16px' }}>
-            <a href="/login">← Volver al login</a>
-          </p>
+          <Suspense fallback={<p className={styles.subtitle}>Cargando...</p>}>
+            <VerifyEmailContent />
+          </Suspense>
         </div>
       </div>
     </div>

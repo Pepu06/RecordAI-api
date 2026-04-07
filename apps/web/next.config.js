@@ -10,6 +10,10 @@ const nextConfig = {
         : ['localhost:3000'],
     },
   },
+  env: {
+    SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING: '1',
+    SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING: '1',
+  },
 };
 
 module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN

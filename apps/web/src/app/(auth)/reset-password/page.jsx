@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '../../../lib/api';
 import styles from '../auth.module.css';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -43,6 +43,55 @@ export default function ResetPasswordPage() {
   }
 
   return (
+    <>
+      <h2 className={styles.title}>Restablecer contraseña</h2>
+      <p className={styles.subtitle}>Ingresá tu nueva contraseña.</p>
+
+      {success ? (
+        <div style={{ padding: '20px', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius)', color: 'var(--accent)', fontSize: '14px' }}>
+          ¡Contraseña actualizada! Redirigiendo al login...
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Nueva contraseña</label>
+            <input
+              type="password"
+              placeholder="Mínimo 8 caracteres"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className={styles.input}
+              required
+              minLength={8}
+            />
+          </div>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Confirmar contraseña</label>
+            <input
+              type="password"
+              placeholder="Repetí la contraseña"
+              value={form.confirm}
+              onChange={(e) => setForm({ ...form, confirm: e.target.value })}
+              className={styles.input}
+              required
+            />
+          </div>
+          {error && <p className={styles.error}>{error}</p>}
+          <button type="submit" className={styles.button} disabled={loading || !token}>
+            {loading ? 'Guardando...' : 'Guardar nueva contraseña'}
+          </button>
+        </form>
+      )}
+
+      <p className={styles.link}>
+        <a href="/login">← Volver al inicio de sesión</a>
+      </p>
+    </>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
     <div className={styles.container}>
       <div className={styles.decorPanel}>
         <div className={styles.decorContent}>
@@ -66,49 +115,9 @@ export default function ResetPasswordPage() {
             <img src="/logo_autoagenda.png" alt="AutoAgenda" className={styles.mobileMark} />
             <span className={styles.mobileBrandName}>AutoAgenda</span>
           </div>
-
-          <h2 className={styles.title}>Restablecer contraseña</h2>
-          <p className={styles.subtitle}>Ingresá tu nueva contraseña.</p>
-
-          {success ? (
-            <div style={{ padding: '20px', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius)', color: 'var(--accent)', fontSize: '14px' }}>
-              ¡Contraseña actualizada! Redirigiendo al login...
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className={styles.form}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Nueva contraseña</label>
-                <input
-                  type="password"
-                  placeholder="Mínimo 8 caracteres"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className={styles.input}
-                  required
-                  minLength={8}
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Confirmar contraseña</label>
-                <input
-                  type="password"
-                  placeholder="Repetí la contraseña"
-                  value={form.confirm}
-                  onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-                  className={styles.input}
-                  required
-                />
-              </div>
-              {error && <p className={styles.error}>{error}</p>}
-              <button type="submit" className={styles.button} disabled={loading || !token}>
-                {loading ? 'Guardando...' : 'Guardar nueva contraseña'}
-              </button>
-            </form>
-          )}
-
-          <p className={styles.link}>
-            <a href="/login">← Volver al inicio de sesión</a>
-          </p>
+          <Suspense fallback={<p className={styles.subtitle}>Cargando...</p>}>
+            <ResetPasswordForm />
+          </Suspense>
         </div>
       </div>
     </div>
