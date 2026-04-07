@@ -203,35 +203,19 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* PROVEEDOR DE WHATSAPP */}
+      {/* PROVEEDOR DE WHATSAPP — Meta Business API */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Proveedor de WhatsApp</h2>
-          <p className={styles.sectionDesc}>Elegí qué servicio usar para enviar mensajes</p>
+          <h2 className={styles.sectionTitle}>WhatsApp Business API</h2>
+          <p className={styles.sectionDesc}>Credenciales de Meta para el envío de mensajes</p>
         </div>
         <div className={styles.fields}>
-          <Field label="Proveedor">
-            <div className={styles.toggle}>
-              {[
-                { value: 'meta', label: 'Meta (WhatsApp Business API)' },
-                { value: 'wasender', label: 'WasenderAPI' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  className={`${styles.toggleBtn} ${settings.whatsappProvider === opt.value ? styles.toggleActive : ''}`}
-                  onClick={() => set('whatsappProvider', opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+          <Field label="Phone Number ID">
+            <input className={styles.input} type="password" value={settings.whatsappPhoneNumberId} onChange={e => set('whatsappPhoneNumberId', e.target.value)} placeholder="Ej: 123456789012345" />
           </Field>
-
-          {settings.whatsappProvider === 'wasender' && (
-            <Field label="Wasender Token" hint="Token de API de WasenderAPI">
-              <input className={styles.input} type="password" value={settings.wasenderApiKey} onChange={e => set('wasenderApiKey', e.target.value)} placeholder="tu_token_wasender" />
-            </Field>
-          )}
+          <Field label="Access Token" hint="Lo encontrás en Meta for Developers → Tu App → WhatsApp → API Setup.">
+            <input className={styles.input} type="password" value={settings.whatsappAccessToken} onChange={e => set('whatsappAccessToken', e.target.value)} placeholder="EAAxxxxxxxxx..." />
+          </Field>
         </div>
       </section>
 
