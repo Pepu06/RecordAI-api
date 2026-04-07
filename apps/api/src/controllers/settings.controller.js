@@ -42,6 +42,39 @@ async function updateSettings(req, res, next) {
       updates.wasender_connected = updates.whatsapp_provider === 'wasender';
     }
 
+    // Validar configuración completa antes de activar el motor de mensajes
+    if (updates.messaging_enabled === true) {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('business_name, message_template, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key')
+        .eq('id', req.tenantId)
+        .single();
+
+      const missing = [];
+      const businessName = String(updates.business_name || tenant?.business_name || '').trim();
+      const messageTemplate = String(updates.message_template || tenant?.message_template || '').trim();
+      const provider = updates.whatsapp_provider || tenant?.whatsapp_provider || 'meta';
+
+      if (!businessName) missing.push('Nombre del negocio');
+      if (!messageTemplate) missing.push('Mensaje personalizable');
+
+      if (provider === 'wasender') {
+        const wasenderKey = String(updates.wasender_api_key || tenant?.wasender_api_key || '').trim();
+        if (!wasenderKey) missing.push('API Key de WasenderAPI');
+      } else {
+        const phoneId = String(updates.whatsapp_phone_number_id || tenant?.whatsapp_phone_number_id || '').trim();
+        const token = String(updates.whatsapp_access_token || tenant?.whatsapp_access_token || '').trim();
+        if (!phoneId || !token) missing.push('Credenciales de WhatsApp Business (Phone Number ID y Access Token)');
+      }
+
+      if (missing.length > 0) {
+        throw new AppError(
+          `Para activar el motor de mensajes, completá primero: ${missing.join(', ')}.`,
+          400
+        );
+      }
+    }
+
     const { data, error } = await supabase
       .from('tenants')
       .update(updates)
@@ -70,4 +103,77 @@ async function deleteAccount(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-module.exports = { getSettings, updateSettings, deleteAccount };
+async function getOnboarding(req, res, next) {
+  try {
+    const [tenantResult, userResult, servicesResult] = await Promise.all([
+      supabase
+        .from('tenants')
+        .select('business_name, message_template, messaging_enabled, onboarding_completed, onboarding_step, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key')
+        .eq('id', req.tenantId)
+        .single(),
+      supabase
+        .from('users')
+        .select('google_refresh_token')
+        .eq('id', req.userId)
+        .single(),
+      supabase
+        .from('services')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', req.tenantId),
+    ]);
+
+    if (tenantResult.error) throw tenantResult.error;
+
+    const tenant = tenantResult.data;
+    const user = userResult.data;
+    const serviceCount = servicesResult.count || 0;
+
+    const provider = tenant.whatsapp_provider || 'meta';
+    const whatsappConfigured = provider === 'wasender'
+      ? Boolean(String(tenant.wasender_api_key || '').trim())
+      : Boolean(String(tenant.whatsapp_phone_number_id || '').trim() && String(tenant.whatsapp_access_token || '').trim());
+
+    const steps = {
+      business_info:    { done: Boolean(String(tenant.business_name || '').trim()) },
+      google_calendar:  { done: Boolean(user?.google_refresh_token) },
+      calendar_format:  { done: (tenant.onboarding_step || 0) >= 3 },
+      whatsapp:         { done: whatsappConfigured },
+      first_service:    { done: serviceCount > 0 },
+      message_template: { done: Boolean(String(tenant.message_template || '').trim()) },
+      enable_messaging: { done: tenant.messaging_enabled === true },
+    };
+
+    const completedCount = Object.values(steps).filter(s => s.done).length;
+
+    return res.json({
+      success: true,
+      data: {
+        completed: tenant.onboarding_completed === true,
+        currentStep: tenant.onboarding_step || 0,
+        completedCount,
+        totalSteps: 7,
+        steps,
+      },
+    });
+  } catch (err) { return next(err); }
+}
+
+async function updateOnboarding(req, res, next) {
+  try {
+    const updates = {};
+    if (typeof req.body.step === 'number') updates.onboarding_step = req.body.step;
+    if (req.body.completed === true) updates.onboarding_completed = true;
+
+    if (!Object.keys(updates).length) throw new AppError('No valid fields provided', 400);
+
+    const { error } = await supabase
+      .from('tenants')
+      .update(updates)
+      .eq('id', req.tenantId);
+
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (err) { return next(err); }
+}
+
+module.exports = { getSettings, updateSettings, deleteAccount, getOnboarding, updateOnboarding };

@@ -67,8 +67,12 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(true);
 
   useEffect(() => {
+    api.get('/settings/onboarding').then(res => {
+      if (res.data?.completed === false) setOnboardingCompleted(false);
+    }).catch(() => {});
     api.get('/settings').then(res => {
       const d = res.data;
       const mapped = {};
@@ -154,6 +158,14 @@ export default function SettingsPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>Configuración</h1>
         <p className={styles.subtitle}>Personalizá tu cuenta y el comportamiento del bot</p>
+        {!onboardingCompleted && (
+          <a href="/setup" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '10px', fontSize: '13px', color: 'var(--accent)', textDecoration: 'none', fontWeight: '600' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Volver al asistente de configuración inicial
+          </a>
+        )}
       </div>
 
       {/* GENERAL */}

@@ -31,7 +31,7 @@ export default function RegisterPage() {
     try {
       const res = await api.post('/auth/register', form);
       saveAuth(res.data.token);
-      router.push('/dashboard');
+      router.push('/setup');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -48,7 +48,7 @@ export default function RegisterPage() {
       try {
         const res = await api.post('/auth/google', { code });
         saveAuth(res.data.token);
-        router.push('/dashboard');
+        router.push('/setup');
       } catch {
         setError('Error al registrarse con Google');
       } finally {

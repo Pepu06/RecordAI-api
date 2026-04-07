@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { isAuthenticated, clearAuth, getToken } from '../../lib/auth';
+import { api } from '../../lib/api';
 import styles from './dashboard.module.css';
 
 const navItems = [
@@ -91,6 +92,7 @@ export default function DashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState({ initials: 'MN', businessName: 'Mi Negocio', profilePicture: null });
+  const [setupBanner, setSetupBanner] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) router.replace('/login');
@@ -117,6 +119,16 @@ export default function DashboardLayout({ children }) {
     } catch {
       setProfile({ initials: 'MN', businessName: 'Mi Negocio', profilePicture: null });
     }
+  }, []);
+
+  // Mostrar banner si el onboarding no está completo
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    const dismissed = typeof window !== 'undefined' && sessionStorage.getItem('setup_banner_dismissed');
+    if (dismissed) return;
+    api.get('/settings/onboarding').then(res => {
+      if (res.data?.completed === false) setSetupBanner(true);
+    }).catch(() => {});
   }, []);
 
   // Close mobile menu when route changes
@@ -241,6 +253,24 @@ export default function DashboardLayout({ children }) {
       </aside>
 
       <div className={styles.main}>
+        {setupBanner && pathname !== '/setup' && (
+          <div className={styles.setupBanner}>
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Tu cuenta no está completamente configurada.{' '}
+              <a href="/setup" className={styles.setupBannerLink}>Completar configuración →</a>
+            </span>
+            <button
+              className={styles.setupBannerClose}
+              onClick={() => { sessionStorage.setItem('setup_banner_dismissed', '1'); setSetupBanner(false); }}
+              aria-label="Cerrar"
+            >×</button>
+          </div>
+        )}
         <div className={styles.content}>
           {children}
         </div>

@@ -63,7 +63,7 @@ async function runDailyReminders() {
 
   for (const appt of appointments || []) {
     if (!appt?.contact?.phone) continue;
-    if (appt?.tenant?.messaging_enabled === false) {
+    if (appt?.tenant?.messaging_enabled !== true) {
       logger.info({ appointmentId: appt?.id }, 'Skipping daily reminder, messaging disabled');
       continue;
     }

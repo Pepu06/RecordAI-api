@@ -17,7 +17,7 @@ async function sendConfirmation({ appointmentId }) {
     return;
   }
 
-  if (appointment.tenant?.messaging_enabled === false) {
+  if (appointment.tenant?.messaging_enabled !== true) {
     logger.info({ appointmentId }, 'Skipping confirmation, messaging disabled');
     return;
   }

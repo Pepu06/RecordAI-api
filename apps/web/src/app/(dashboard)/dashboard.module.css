@@ -693,3 +693,34 @@
     padding: 16px 12px;
   }
 }
+
+/* ── Setup banner ── */
+.setupBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  background: rgba(245, 158, 11, 0.1);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+  font-size: 13px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.setupBannerLink {
+  color: #d97706;
+  font-weight: 600;
+  text-decoration: none;
+}
+.setupBannerLink:hover { text-decoration: underline; }
+.setupBannerClose {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.setupBannerClose:hover { color: var(--text); }
