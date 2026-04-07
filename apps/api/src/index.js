@@ -6,10 +6,12 @@ require('./workers/queue'); // Start workers
 const { startDailyReminderCron } = require('./workers/dailyCalendarReminder');
 const { startDailyReportCron } = require('./workers/dailyReportCron');
 const { startMonthlyBillingCron } = require('./workers/monthlyBillingCron');
+const { startSubscriptionRenewalCron } = require('./workers/subscriptionRenewalCron');
 
 app.listen(env.PORT, () => {
   logger.info(`AutoAgenda API running on port ${env.PORT}`);
   startDailyReminderCron();
   startDailyReportCron();
   startMonthlyBillingCron();
+  startSubscriptionRenewalCron();
 });

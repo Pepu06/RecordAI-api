@@ -28,6 +28,10 @@ const envSchema = z.object({
   GOOGLE_DRIVE_REFRESH_TOKEN:  z.string().optional().default(''),
   GOOGLE_DRIVE_FOLDER_ID:      z.string().optional().default(''),
   ADMIN_PANEL_PASSWORD:        z.string().optional().default('autoagenda2026'),
+  PAYMENT_CBU:                 z.string().optional().default(''),
+  PAYMENT_ALIAS:               z.string().optional().default(''),
+  RESEND_API_KEY:              z.string().optional().default(''),
+  EMAIL_FROM:                  z.string().optional().default('AutoAgenda <noreply@autoagenda.com>'),
 });
 
 const parsed = envSchema.safeParse(process.env);

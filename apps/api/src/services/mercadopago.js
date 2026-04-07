@@ -189,11 +189,13 @@ async function getSubscriptionStatus(mpSubscriptionId) {
 
 /**
  * Get plan configuration
- * @param {string} plan - Plan name: 'trial', 'basic', or 'pro'
+ * @param {string} plan - Plan name: 'trial', 'basic'/'inicial', or 'pro'/'profesional'
  * @returns {object} Plan configuration
  */
 function getPlanConfig(plan) {
-  return PLANS[plan] || null;
+  // DB stores 'basic'/'pro'; frontend/MP uses 'inicial'/'profesional' — normalize both
+  const aliases = { basic: 'inicial', pro: 'profesional' };
+  return PLANS[plan] || PLANS[aliases[plan]] || null;
 }
 
 module.exports = {
