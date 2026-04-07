@@ -143,21 +143,22 @@ async function processMessage(message, _metadata) {
       .eq('id', appointment.tenant_id)
       .single();
 
-    const replyText = newStatus === 'confirmed'
-      ? replyTenant?.confirm_reply_message
-      : replyTenant?.cancel_reply_message;
+    const DEFAULT_CONFIRM = '¡Listo! Tu turno quedó confirmado. Te esperamos.';
+    const DEFAULT_CANCEL  = 'Recibimos tu cancelación. Si querés reprogramar, respondé a este mensaje.';
 
-    if (replyText) {
-      const clientPhone = from.startsWith('+') ? from : `+${from}`;
-      const tenantConfig = {
-        provider: replyTenant.whatsapp_provider || 'meta',
-        whatsappPhoneNumberId: replyTenant.whatsapp_phone_number_id,
-        whatsappAccessToken: replyTenant.whatsapp_access_token,
-        wasender_api_key: replyTenant.wasender_api_key,
-      };
-      await sendTextMessage(clientPhone, replyText, tenantConfig);
-      logger.info({ appointmentId: appointment.id, newStatus }, 'Reply message sent to client');
-    }
+    const replyText = newStatus === 'confirmed'
+      ? (replyTenant?.confirm_reply_message || DEFAULT_CONFIRM)
+      : (replyTenant?.cancel_reply_message  || DEFAULT_CANCEL);
+
+    const clientPhone = from.startsWith('+') ? from : `+${from}`;
+    const tenantConfig = {
+      provider: replyTenant.whatsapp_provider || 'meta',
+      whatsappPhoneNumberId: replyTenant.whatsapp_phone_number_id,
+      whatsappAccessToken: replyTenant.whatsapp_access_token,
+      wasender_api_key: replyTenant.wasender_api_key,
+    };
+    await sendTextMessage(clientPhone, replyText, tenantConfig);
+    logger.info({ appointmentId: appointment.id, newStatus }, 'Reply message sent to client');
   } catch (err) {
     logger.warn({ err }, 'Failed to send reply message to client');
   }

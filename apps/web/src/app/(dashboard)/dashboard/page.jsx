@@ -23,36 +23,26 @@ function getGreeting() {
 }
 
 export default function DashboardPage() {
-  const [events, setEvents]     = useState([]);
+  const [metrics, setMetrics]   = useState(null);
   const [usage, setUsage]       = useState(null);
   const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
     Promise.all([
-      api.get('/calendar/events').then(res => setEvents(res.data || [])).catch(() => {}),
+      api.get('/dashboard/metrics').then(res => setMetrics(res.data)).catch(() => {}),
       api.get('/subscription').then(res => setUsage(res)).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
   const stats = {
-    sentToday:  events.filter(e => e.start?.slice(0, 10) === today && e.status !== null).length,
-    confirmed:  events.filter(e => e.status === 'confirmed').length,
-    pending:    events.filter(e => e.status === 'pending').length,
-    cancelled:  events.filter(e => e.status === 'cancelled').length,
+    sentToday: metrics?.sentToday  ?? 0,
+    confirmed: metrics?.confirmed  ?? 0,
+    pending:   metrics?.pending    ?? 0,
+    cancelled: metrics?.cancelled  ?? 0,
   };
 
-  const upcomingToday = events
-    .filter(e => e.start?.slice(0, 10) === today)
-    .sort((a, b) => new Date(a.start) - new Date(b.start))
-    .slice(0, 6);
-
-  const upcomingNext = events
-    .filter(e => e.start?.slice(0, 10) > today && e.start?.slice(0, 10) <= in7Days && e.status !== 'cancelled')
-    .sort((a, b) => new Date(a.start) - new Date(b.start))
-    .slice(0, 5);
+  const upcomingToday = metrics?.upcomingToday ?? [];
+  const upcomingNext  = metrics?.upcomingNext  ?? [];
 
   const greeting = getGreeting();
 
@@ -153,17 +143,19 @@ function EventList({ events, emptyText, timezone, showDate }) {
     <div className={styles.activityList}>
       {events.map(e => {
         const s = STATUS_CONFIG[e.status] ?? STATUS_FALLBACK;
-        const dateObj = new Date(e.start);
+        const dateObj = new Date(e.scheduledAt);
         const time = dateObj.toLocaleTimeString('es-AR', { timeZone: timezone, hour: '2-digit', minute: '2-digit' });
         const dateLabel = showDate ? dateObj.toLocaleDateString('es-AR', {
           timeZone: timezone, weekday: 'short', day: 'numeric', month: 'short',
         }) : null;
+        const title = e.contactName || e.serviceName || 'Cita';
+        const meta = e.serviceName && e.contactName ? e.serviceName : (e.contactPhone || '');
         return (
           <div key={e.id} className={styles.activityItem}>
             <div className={styles.activityDot} style={{ background: s.color }} />
             <div className={styles.activityBody}>
-              <div className={styles.activityName}>{e.title}</div>
-              <div className={styles.activityMeta}>{e.phone || 'Sin teléfono'}</div>
+              <div className={styles.activityName}>{title}</div>
+              <div className={styles.activityMeta}>{meta}</div>
             </div>
             <span className={styles.activityBadge} style={{ background: s.bg, color: s.color }}>{s.label}</span>
             <span className={styles.activityTime}>

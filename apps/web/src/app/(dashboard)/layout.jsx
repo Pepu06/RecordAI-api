@@ -93,6 +93,10 @@ export default function DashboardLayout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState({ initials: 'MN', businessName: 'Mi Negocio', profilePicture: null });
   const [setupBanner, setSetupBanner] = useState(false);
+  const [gcalReconnectBanner, setGcalReconnectBanner] = useState(false);
+  const [emailUnverified, setEmailUnverified] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) router.replace('/login');
@@ -116,6 +120,11 @@ export default function DashboardLayout({ children }) {
         businessName: business,
         profilePicture: picture,
       });
+
+      // Show email verification banner if not verified (payload.emailVerified may be absent for old tokens)
+      if (payload.emailVerified === false) {
+        setEmailUnverified(true);
+      }
     } catch {
       setProfile({ initials: 'MN', businessName: 'Mi Negocio', profilePicture: null });
     }
@@ -131,10 +140,31 @@ export default function DashboardLayout({ children }) {
     }).catch(() => {});
   }, []);
 
+  // Mostrar banner si Google Calendar necesita reconexión
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    api.get('/calendar/status').then(res => {
+      if (res.data?.needsReconnect) setGcalReconnectBanner(true);
+    }).catch(() => {});
+  }, []);
+
   // Close mobile menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  async function handleResendVerification() {
+    if (resendingEmail || resendDone) return;
+    setResendingEmail(true);
+    try {
+      await api.post('/auth/resend-verification');
+      setResendDone(true);
+    } catch {
+      // Silently ignore — user can try again later
+    } finally {
+      setResendingEmail(false);
+    }
+  }
 
   function handleLogout() {
     clearAuth();
@@ -253,6 +283,48 @@ export default function DashboardLayout({ children }) {
       </aside>
 
       <div className={styles.main}>
+        {emailUnverified && (
+          <div className={styles.setupBanner} style={{ background: 'var(--yellow-bg)', borderColor: 'var(--yellow-border)', color: 'var(--yellow)' }}>
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+              </svg>
+              Verificá tu email para asegurar el acceso a tu cuenta.{' '}
+              {resendDone ? (
+                <span style={{ fontWeight: 600 }}>¡Email enviado! Revisá tu bandeja.</span>
+              ) : (
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resendingEmail}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontWeight: 600, textDecoration: 'underline', fontSize: 'inherit' }}
+                >
+                  {resendingEmail ? 'Enviando...' : 'Reenviar email'}
+                </button>
+              )}
+            </span>
+            <button
+              className={styles.setupBannerClose}
+              onClick={() => setEmailUnverified(false)}
+              aria-label="Cerrar"
+            >×</button>
+          </div>
+        )}
+        {gcalReconnectBanner && (
+          <div className={styles.setupBanner} style={{ background: 'var(--red-bg)', borderColor: 'var(--red-border)', color: 'var(--red)' }}>
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Tu conexión con Google Calendar expiró.{' '}
+              <a href="/calendar" className={styles.setupBannerLink} style={{ color: 'var(--red)' }}>Reconectar →</a>
+            </span>
+            <button
+              className={styles.setupBannerClose}
+              onClick={() => setGcalReconnectBanner(false)}
+              aria-label="Cerrar"
+            >×</button>
+          </div>
+        )}
         {setupBanner && pathname !== '/setup' && (
           <div className={styles.setupBanner}>
             <span>

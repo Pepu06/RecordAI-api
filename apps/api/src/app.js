@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const Sentry = require('@sentry/node');
 const errorHandler = require('./middleware/errorHandler');
 const env = require('./config/env');
 const { authLimiter } = require('./middleware/rateLimiter');
@@ -15,6 +16,7 @@ const confirmationRoutes = require('./routes/confirmation.routes');
 const settingsRoutes = require('./routes/settings.routes');
 const subscriptionRoutes = require('./routes/subscription.routes');
 const paymentProofsRoutes = require('./routes/paymentProofs.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 const app = express();
 
@@ -61,6 +63,12 @@ app.use('/calendar', calendarRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/subscription', subscriptionRoutes);
 app.use('/', paymentProofsRoutes);
+app.use('/dashboard', dashboardRoutes);
+
+// Sentry error handler must come before other error middleware
+if (env.SENTRY_DSN && env.NODE_ENV === 'production') {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 app.use(errorHandler);
 

@@ -10,6 +10,7 @@
   "dependencies": {
     "@autoagenda/db": "*",
     "@autoagenda/shared": "*",
+    "@sentry/node": "^10.47.0",
     "axios": "^1.7.0",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.12.0",

@@ -1,6 +1,10 @@
 const { AppError } = require('../errors');
 const logger = require('../config/logger');
 
+function getSentry() {
+  try { return require('@sentry/node'); } catch { return null; }
+}
+
 function errorHandler(err, req, res, _next) {
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
@@ -18,6 +22,10 @@ function errorHandler(err, req, res, _next) {
   }
 
   logger.error({ err }, 'Unhandled error');
+
+  // Report unexpected errors to Sentry
+  const Sentry = getSentry();
+  if (Sentry) Sentry.captureException(err);
 
   return res.status(500).json({
     success: false,

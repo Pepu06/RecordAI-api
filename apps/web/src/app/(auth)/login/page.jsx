@@ -177,6 +177,9 @@ export default function LoginPage() {
           <p className={styles.link}>
             ¿No tenés cuenta? <a href="/register">Registrate gratis</a>
           </p>
+          <p className={styles.link} style={{ marginTop: '8px' }}>
+            <a href="/forgot-password">¿Olvidaste tu contraseña?</a>
+          </p>
         </div>
       </div>
     </div>

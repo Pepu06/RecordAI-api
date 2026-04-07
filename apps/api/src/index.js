@@ -1,3 +1,4 @@
+require('./config/sentry'); // Must be first — instruments before anything else
 require('./config/env'); // Validate env vars at startup
 const app = require('./app');
 const env = require('./config/env');
@@ -7,6 +8,8 @@ const { startDailyReminderCron } = require('./workers/dailyCalendarReminder');
 const { startDailyReportCron } = require('./workers/dailyReportCron');
 const { startMonthlyBillingCron } = require('./workers/monthlyBillingCron');
 const { startSubscriptionRenewalCron } = require('./workers/subscriptionRenewalCron');
+
+logger.info(`[Boot] Queue: ${env.REDIS_URL ? 'enabled' : 'disabled'}`);
 
 if (!env.REDIS_URL) {
   logger.warn('⚠️  REDIS_URL is not set — BullMQ reminder queue is DISABLED. Appointment reminders will NOT be sent.');

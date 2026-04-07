@@ -12,6 +12,7 @@ const envSchema = z.object({
   SUPABASE_SERVICE_KEY:  z.string().min(1),
   JWT_SECRET:            z.string().min(8),
   REDIS_URL:             z.string().optional().default(''),
+  SENTRY_DSN:            z.string().optional().default(''),
   WHATSAPP_TEMPLATE_LANGUAGE:  z.string().optional().default('es'),
   WHATSAPP_VERIFY_TOKEN:       z.string().optional().default('verify'),
   WHATSAPP_PHONE_NUMBER_ID:    z.string().min(1),
@@ -33,6 +34,10 @@ const envSchema = z.object({
   PAYMENT_ALIAS:               z.string().optional().default(''),
   GMAIL_USER:                  z.string().optional().default(''),
   GMAIL_APP_PASSWORD:          z.string().optional().default(''),
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production' && !data.REDIS_URL) {
+    ctx.addIssue({ code: 'custom', path: ['REDIS_URL'], message: 'REDIS_URL is required in production' });
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);

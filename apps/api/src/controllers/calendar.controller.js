@@ -98,8 +98,17 @@ async function getValidToken(userId) {
   // Try to fetch events; if expired, refresh and retry
   const test = await getCalendarEvents(accessToken, { days: 1 });
   if (test === null && refreshToken) {
-    accessToken = await refreshAccessToken(refreshToken);
-    await supabase.from('users').update({ google_access_token: accessToken }).eq('id', userId);
+    try {
+      accessToken = await refreshAccessToken(refreshToken);
+      await supabase.from('users').update({ google_access_token: accessToken }).eq('id', userId);
+    } catch {
+      // Refresh token is revoked — mark as needing reconnect
+      await supabase.from('users').update({
+        google_access_token: null,
+        google_reconnect_required: true,
+      }).eq('id', userId);
+      return null;
+    }
   }
 
   return accessToken;
@@ -108,8 +117,17 @@ async function getValidToken(userId) {
 async function calendarStatus(req, res, next) {
   try {
     const { data: user } = await supabase
-      .from('users').select('google_access_token').eq('id', req.userId).single();
-    return res.json({ success: true, data: { connected: !!user?.google_access_token } });
+      .from('users')
+      .select('google_access_token, google_reconnect_required')
+      .eq('id', req.userId)
+      .single();
+    return res.json({
+      success: true,
+      data: {
+        connected: !!user?.google_access_token,
+        needsReconnect: user?.google_reconnect_required === true,
+      },
+    });
   } catch (err) { return next(err); }
 }
 
@@ -123,6 +141,7 @@ async function connect(req, res, next) {
     await supabase.from('users').update({
       google_access_token: access_token,
       google_refresh_token: refresh_token || undefined,
+      google_reconnect_required: false,
     }).eq('id', req.userId);
 
     return res.json({ success: true });
