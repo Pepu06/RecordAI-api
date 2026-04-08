@@ -44,7 +44,7 @@
 **Precio:** $55.000 ARS / mes (aprox. $45 USD)
 
 **Incluye:**
-- ✅ Hasta 3 agendas de Google Calendar
+- ✅ Integración con Google Calendar
 - ✅ 500 recordatorios de WhatsApp/mes
 - ✅ Confirmaciones automáticas
 - ✅ Recordatorios programados

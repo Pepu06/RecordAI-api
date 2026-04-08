@@ -83,7 +83,6 @@ export default function UploadProofPage() {
           <select className={s.input} value={plan} onChange={e => setPlan(e.target.value)}>
             <option value="basic">Inicial</option>
             <option value="pro">Profesional</option>
-            <option value="custom">Custom</option>
           </select>
         </div>
 

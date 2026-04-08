@@ -21,46 +21,43 @@ const PLANS = {
     description: 'Prueba gratis por 15 días con todas las funciones',
   },
   inicial: {
-    name: 'Plan Inicial',
+    name: 'Plan de 100 citas al mes',
     subtitle: 'Ideal para profesionales independientes',
-    price: 25000, // $25.000 ARS/mes
+    price: 25000, 
     messageLimit: 100,
     calendarsLimit: 1,
-    extraMessagePrice: 150, // $150 ARS por mensaje adicional
     currency: 'ARS',
     description: '1 agenda de Google Calendar, 100 recordatorios de WhatsApp al mes',
-    valueProposition: 'Si un paciente falta a una consulta de $40.000 ARS, perdiste esa plata. Si invertís $25.000 en AutoAgenda, con que salves un solo turno que se iba a perder, la app ya se pagó sola y te dio ganancia.',
+    valueProposition: 'Con un solo turno recuperado al mes, el plan se paga solo.',
   },
   profesional: {
-    name: 'Plan Profesional',
-    subtitle: 'Para consultorios médicos e inmobiliarias',
-    price: 55000, // $55.000 ARS/mes
-    messageLimit: 500,
+    name: 'Plan de 200 citas al mes',
+    subtitle: 'Para equipos y consultorios en crecimiento',
+    price: 40000,
+    messageLimit: 200,
     calendarsLimit: 3,
-    extraMessagePrice: 120, // $120 ARS por mensaje adicional
     currency: 'ARS',
-    description: 'Hasta 3 agendas, 500 recordatorios de WhatsApp al mes, soporte técnico',
-    valueProposition: 'Reducí las ausencias hasta un 80%. Con 2 turnos salvados al mes ya recuperaste la inversión.',
+    description: '200 recordatorios de WhatsApp al mes, soporte técnico',
+    valueProposition: 'Más volumen mensual con mejor costo por cita.',
   },
   custom: {
-    name: 'Plan Custom',
-    subtitle: 'B2B Corporativo',
-    price: 120000, // Desde $120.000 ARS
-    messageLimit: null, // unlimited
-    calendarsLimit: null, // unlimited
-    extraMessagePrice: 0,
+    name: 'Plan de 300 citas al mes',
+    subtitle: 'Para alto volumen de turnos',
+    price: 50000, 
+    messageLimit: 300,
+    calendarsLimit: 5,
     currency: 'ARS',
-    description: 'Agendas ilimitadas, mensajes masivos, integración con CRM propio',
-    customPricing: true,
-    contactRequired: true,
-    valueProposition: 'Solución enterprise a medida. Integramos con tu CRM y procesos internos. Precio personalizado según volumen.',
+    description: '300 recordatorios de WhatsApp al mes, soporte prioritario',
+    customPricing: false,
+    contactRequired: false,
+    valueProposition: 'El mejor valor para equipos con agenda intensa.',
   },
 };
 
 /**
  * Create a Mercado Pago subscription for a tenant
  * @param {string} tenantId - Tenant ID
- * @param {string} plan - Plan type: 'inicial', 'profesional', or 'custom'
+ * @param {string} plan - Plan type: 'inicial' | 'profesional' | 'custom'
  * @param {object} payer - Payer information { email, firstName, lastName }
  * @returns {Promise<object>} Subscription data with init_point URL
  */

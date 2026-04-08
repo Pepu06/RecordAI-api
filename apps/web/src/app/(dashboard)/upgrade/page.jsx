@@ -16,8 +16,8 @@ export default function UpgradePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Orden: profesional | inicial (destacado) | custom
-  const ORDER = ['profesional', 'inicial', 'custom'];
+  // Orden: 100 | 200 | 300 citas (destacado: 200)
+  const ORDER = ['inicial', 'profesional', 'custom'];
   const visiblePlans = ORDER
     .map(id => plans.find(p => p.id === id))
     .filter(Boolean);
@@ -47,6 +47,7 @@ export default function UpgradePage() {
 function PlanCard({ plan, featured }) {
   const [showPayment, setShowPayment] = useState(false);
   const [error, setError] = useState('');
+  const reminders = plan.messageLimit == null ? 'Ilimitados' : plan.messageLimit.toLocaleString('es-AR');
 
   function handleSelectPlan() {
     if (plan.contactRequired) {
@@ -76,15 +77,11 @@ function PlanCard({ plan, featured }) {
 
       <div className={s.divider} />
 
-      <ul className={s.features}>
-        {(plan.features || []).map((f, i) => (
-          <li key={i} className={s.feature}>{f}</li>
-        ))}
-      </ul>
-
-      {plan.valueProposition && (
-        <div className={s.valueProp}>{plan.valueProposition}</div>
-      )}
+      <div className={s.reminderCard}>
+        <span className={s.reminderLabel}>Recordatorios incluidos</span>
+        <div className={s.reminderNumber}>{reminders}</div>
+        <span className={s.reminderSub}>por mes</span>
+      </div>
 
       {error && <div className={s.error}>{error}</div>}
 

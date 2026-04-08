@@ -101,16 +101,6 @@ export default function ContactPage() {
           <div className={styles.faqList}>
             <details className={styles.faqItem}>
               <summary className={styles.faqQuestion}>
-                ¿Cómo configuro WhatsApp?
-              </summary>
-              <div className={styles.faqAnswer}>
-                En <strong>Configuración</strong>, podés elegir entre Meta Cloud API o Wasender. 
-                Necesitarás obtener las credenciales desde Meta Business o Wasender según tu elección.
-              </div>
-            </details>
-
-            <details className={styles.faqItem}>
-              <summary className={styles.faqQuestion}>
                 ¿Cómo conecto Google Calendar?
               </summary>
               <div className={styles.faqAnswer}>

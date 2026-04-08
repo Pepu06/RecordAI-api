@@ -175,7 +175,8 @@ async function cancelSubcription(req, res, next) {
  */
 async function getPlans(req, res, next) {
   try {
-    const plans = Object.entries(PLANS).map(([key, config]) => ({
+    const plans = Object.entries(PLANS)
+      .map(([key, config]) => ({
       id: key,
       name: config.name,
       subtitle: config.subtitle,
@@ -211,34 +212,29 @@ function getFeaturesByPlan(plan) {
       '✅ Panel de control básico',
     ],
     inicial: [
-      '✅ 1 agenda de Google Calendar',
       '✅ 100 recordatorios de WhatsApp/mes',
       '✅ Confirmaciones automáticas',
       '✅ Recordatorios programados',
       '✅ Panel de control completo',
       '✅ Soporte por email',
-      '💰 $150 por mensaje adicional',
     ],
     profesional: [
-      '✅ Hasta 3 agendas de Google Calendar',
-      '✅ 500 recordatorios de WhatsApp/mes',
+      '✅ 200 recordatorios de WhatsApp/mes',
       '✅ Confirmaciones automáticas',
       '✅ Recordatorios programados',
       '✅ Panel de control completo',
       '✅ Soporte técnico prioritario',
       '✅ Estadísticas avanzadas',
       '✅ Múltiples usuarios',
-      '💰 $120 por mensaje adicional',
     ],
     custom: [
-      '✅ Agendas ilimitadas',
-      '✅ Mensajes masivos sin límite',
-      '✅ Integración con CRM propio',
-      '✅ API personalizada',
-      '✅ Soporte dedicado 24/7',
-      '✅ Reportes personalizados',
-      '✅ Onboarding y capacitación',
-      '💼 Precio a medida según volumen',
+      '✅ 300 recordatorios de WhatsApp/mes',
+      '✅ Confirmaciones automáticas',
+      '✅ Recordatorios programados',
+      '✅ Panel de control completo',
+      '✅ Soporte técnico prioritario',
+      '✅ Estadísticas avanzadas',
+      '✅ Múltiples usuarios',
     ],
   };
 
