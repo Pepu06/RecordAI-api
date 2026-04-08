@@ -39,9 +39,20 @@ export default function ServicesPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    
+    // Validate
+    if (!form.name?.trim()) {
+      setError('El nombre es requerido');
+      return;
+    }
+    if (!form.durationMinutes || Number(form.durationMinutes) <= 0) {
+      setError('La duración debe ser mayor a 0');
+      return;
+    }
+    
     try {
       const payload = {
-        name:            form.name,
+        name:            form.name.trim(),
         durationMinutes: Number(form.durationMinutes),
         price:           form.price !== '' ? Number(form.price) : 0,
       };

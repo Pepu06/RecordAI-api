@@ -25,6 +25,8 @@ CREATE TABLE users (
   email         TEXT UNIQUE NOT NULL,
   password_hash TEXT,
   role          user_role NOT NULL DEFAULT 'staff',
+  google_access_token  TEXT,
+  google_refresh_token TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX ON users(tenant_id);

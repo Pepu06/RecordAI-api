@@ -16,9 +16,23 @@ async function list(req, res, next) {
 async function create(req, res, next) {
   try {
     const { name, durationMinutes, price } = req.body;
+    
+    // Validate required fields
+    if (!name || !durationMinutes) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'name and durationMinutes are required' 
+      });
+    }
+    
     const { data, error } = await supabase
       .from('services')
-      .insert({ tenant_id: req.tenantId, name, duration_minutes: durationMinutes, price })
+      .insert({ 
+        tenant_id: req.tenantId, 
+        name, 
+        duration_minutes: Number(durationMinutes) || 30,
+        price: price != null ? Number(price) : 0
+      })
       .select().single();
     if (error) throw error;
     return res.status(201).json({ success: true, data: convertKeys(data) });
@@ -41,9 +55,15 @@ async function update(req, res, next) {
     if (!existing) throw new NotFoundError('Service not found');
 
     const { name, durationMinutes, price } = req.body;
+    
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (durationMinutes !== undefined) updateData.duration_minutes = Number(durationMinutes) || 30;
+    if (price !== undefined) updateData.price = price != null ? Number(price) : 0;
+    
     const { data, error } = await supabase
       .from('services')
-      .update({ name, duration_minutes: durationMinutes, price })
+      .update(updateData)
       .eq('id', req.params.id).select().single();
     if (error) throw error;
     return res.json({ success: true, data: convertKeys(data) });
