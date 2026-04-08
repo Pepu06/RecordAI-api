@@ -76,7 +76,7 @@ async function sendConfirmation({ appointmentId }) {
     wasender_api_key: appointment.tenant?.wasender_api_key,
   };
   
-  await sendTemplate(appointment.contact.phone, 'confirmacion_turno', {
+  const whatsappResponse = await sendTemplate(appointment.contact.phone, 'confirmacion_turno', {
     body: [
       appointment.contact.name,
       recordatorioTexto,
@@ -87,6 +87,9 @@ async function sendConfirmation({ appointmentId }) {
       ubicacion,
     ],
   }, tenantConfig);
+  
+  const waMessageId = whatsappResponse?.messages?.[0]?.id || null;
+  
   await trackMessageSent(appointment.tenant_id, 'confirmation');
 
   const { error: updateError } = await supabase
@@ -109,6 +112,7 @@ async function sendConfirmation({ appointmentId }) {
     type:           'confirmation',
     direction:      'outbound',
     status:         'sent',
+    wa_message_id:  waMessageId,
   });
 
   if (logError) {

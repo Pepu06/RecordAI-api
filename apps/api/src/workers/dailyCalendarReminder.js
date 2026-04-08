@@ -102,7 +102,7 @@ async function runDailyReminders() {
     };
 
     try {
-      await sendTemplate(appt.contact.phone, 'recordatorio_turno', {
+      const whatsappResponse = await sendTemplate(appt.contact.phone, 'recordatorio_turno', {
         header: [{ name: 'encabezado', value: encabezado }],
         body: [
           { name: 'nombre_cliente',   value: appt.contact.name || 'Cliente' },
@@ -117,6 +117,8 @@ async function runDailyReminders() {
         ],
       }, tenantConfig);
 
+      const waMessageId = whatsappResponse?.messages?.[0]?.id || null;
+
       await supabase
         .from('appointments')
         .update({ reminder_sent_at: new Date().toISOString(), status: 'pending' })
@@ -128,6 +130,7 @@ async function runDailyReminders() {
         type: 'reminder',
         direction: 'outbound',
         status: 'sent',
+        wa_message_id: waMessageId,
       });
 
       appointmentsQueue

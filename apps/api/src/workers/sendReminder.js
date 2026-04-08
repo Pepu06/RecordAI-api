@@ -62,7 +62,7 @@ async function sendReminder({ appointmentId }) {
   };
 
   // Enviar plantilla recordatorio_turno con botones
-  await sendTemplate(appointment.contact.phone, 'recordatorio_turno', {
+  const whatsappResponse = await sendTemplate(appointment.contact.phone, 'recordatorio_turno', {
     header: [{ name: 'encabezado', value: encabezado }],
     body: [
       { name: 'nombre_cliente',   value: appointment.contact.name },
@@ -78,6 +78,8 @@ async function sendReminder({ appointmentId }) {
     ],
   }, tenantConfig);
 
+  const waMessageId = whatsappResponse?.messages?.[0]?.id || null;
+
   const { error: updateError } = await supabase
     .from('appointments')
     .update({ status: 'pending', reminder_sent_at: new Date().toISOString() })
@@ -91,11 +93,24 @@ async function sendReminder({ appointmentId }) {
 
   await trackMessageSent(appointment.tenant_id, 'reminder');
 
+  const { error: logError } = await supabase.from('message_logs').insert({
+    tenant_id:      appointment.tenant_id,
+    appointment_id: appointmentId,
+    type:           'reminder',
+    direction:      'outbound',
+    status:         'sent',
+    wa_message_id:  waMessageId,
+  });
+
+  if (logError) {
+    logger.error({ appointmentId, logError }, 'Failed to insert reminder message log');
+  }
+
   appointmentsQueue
     .add(JobName.SEND_FOLLOW_UP, { appointmentId }, { delay: 2 * 60 * 60 * 1000 })
     .catch(() => { });
 
-  logger.info({ appointmentId }, 'Reminder sent via recordatorio_turno template');
+  logger.info({ appointmentId, waMessageId }, 'Reminder sent via recordatorio_turno template');
 }
 
 module.exports = { sendReminder };

@@ -59,7 +59,7 @@ async function sendFollowUp({ appointmentId }) {
     wasender_api_key: appointment.tenant?.wasender_api_key,
   };
 
-  await sendTemplate(appointment.contact.phone, 'recordatorio_turno', {
+  const whatsappResponse = await sendTemplate(appointment.contact.phone, 'recordatorio_turno', {
     header: [{ name: 'encabezado', value: encabezado }],
     body: [
       { name: 'nombre_cliente', value: appointment.contact.name || 'Cliente' },
@@ -74,6 +74,8 @@ async function sendFollowUp({ appointmentId }) {
     ],
   }, tenantConfig);
 
+  const waMessageId = whatsappResponse?.messages?.[0]?.id || null;
+
   const { error: updateError } = await supabase
     .from('appointments')
     .update({ status: 'pending' })
@@ -87,7 +89,20 @@ async function sendFollowUp({ appointmentId }) {
 
   await trackMessageSent(appointment.tenant_id, 'follow_up');
 
-  logger.info({ appointmentId }, 'Follow-up sent');
+  const { error: logError } = await supabase.from('message_logs').insert({
+    tenant_id:      appointment.tenant_id,
+    appointment_id: appointmentId,
+    type:           'follow_up',
+    direction:      'outbound',
+    status:         'sent',
+    wa_message_id:  waMessageId,
+  });
+
+  if (logError) {
+    logger.error({ appointmentId, logError }, 'Failed to insert follow-up message log');
+  }
+
+  logger.info({ appointmentId, waMessageId }, 'Follow-up sent');
 }
 
 module.exports = { sendFollowUp };
