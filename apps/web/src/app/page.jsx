@@ -146,6 +146,17 @@ export default function LandingPage() {
       <nav className={s.navbar}>
         <div className={s.navInner}>
           <img src="/logo_autoagenda.png" alt="AutoAgenda" className={s.navLogo} />
+          <div className={s.navMenu}>
+            <Link href="/privacy" className={s.navLink}>
+              Privacidad
+            </Link>
+            <Link href="/terms" className={s.navLink}>
+              Términos
+            </Link>
+            <Link href="/contact" className={s.navLink}>
+              Contacto
+            </Link>
+          </div>
           <Link href="/dashboard" className={s.navCta}>
             Entrar al Dashboard <span>→</span>
           </Link>
@@ -325,6 +336,9 @@ export default function LandingPage() {
             </Link>
             <Link href="/terms" className={s.footerLink}>
               Términos del Servicio
+            </Link>
+            <Link href="/contact" className={s.footerLink}>
+              Contacto
             </Link>
             <Link href="/dashboard" className={s.footerLink}>
               Dashboard
