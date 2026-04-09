@@ -29,22 +29,25 @@ function computePopoverStyle(rect, position, popoverWidth = 320, popoverHeight =
 
   if (position === 'bottom') {
     top  = rect.bottom + GAP;
-    left = Math.min(Math.max(rect.left, GAP), winW - popoverWidth - GAP);
-    // flip if too far down
+    left = rect.left;
     if (top + popoverHeight > winH - GAP) { top = rect.top - popoverHeight - GAP; placement = 'top'; }
   } else if (position === 'top') {
     top  = rect.top - popoverHeight - GAP;
-    left = Math.min(Math.max(rect.left, GAP), winW - popoverWidth - GAP);
+    left = rect.left;
     if (top < GAP) { top = rect.bottom + GAP; placement = 'bottom'; }
   } else if (position === 'right') {
-    top  = Math.min(Math.max(rect.top, GAP), winH - popoverHeight - GAP);
     left = rect.right + GAP;
+    top  = rect.top;
     if (left + popoverWidth > winW - GAP) { left = rect.left - popoverWidth - GAP; placement = 'left'; }
   } else if (position === 'left') {
-    top  = Math.min(Math.max(rect.top, GAP), winH - popoverHeight - GAP);
     left = rect.left - popoverWidth - GAP;
+    top  = rect.top;
     if (left < GAP) { left = rect.right + GAP; placement = 'right'; }
   }
+
+  // Hard clamp — always keep popover fully on screen regardless of flip outcome
+  top  = Math.max(GAP, Math.min(top,  winH - popoverHeight - GAP));
+  left = Math.max(GAP, Math.min(left, winW - popoverWidth  - GAP));
 
   return { style: { top, left }, placement };
 }
@@ -263,7 +266,11 @@ export function TourProvider({ children }) {
           <div
             ref={popoverRef}
             className={`${styles.popover} ${!step.selector ? styles.popoverCentered : ''}`}
-            style={step.selector && popoverPos ? popoverPos.style : undefined}
+            style={
+              step.selector
+                ? { ...(popoverPos ? popoverPos.style : { visibility: 'hidden' }) }
+                : undefined
+            }
           >
             {/* Arrow */}
             {step.selector && popoverPos && (
