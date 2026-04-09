@@ -240,6 +240,21 @@ export default function TuAutoAgendaPage() {
             </div>
           </div>
 
+          <div className={styles.toggleRow}>
+            <div>
+              <div className={styles.toggleLabel}>Activar autoagenda</div>
+              <div className={styles.toggleSub}>Cuando está activa, tus clientes pueden agendar desde tu link público.</div>
+            </div>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={!!profile.autoagendaEnabled}
+                onChange={e => setProfile(prev => ({ ...prev, autoagendaEnabled: e.target.checked }))}
+              />
+              <span className={styles.toggleSlider} />
+            </label>
+          </div>
+
           <div className={styles.saveRow}>
             <button type="submit" className={styles.btnPrimary} disabled={profileSaving}>
               {profileSaving ? 'Guardando...' : 'Guardar'}
@@ -273,8 +288,8 @@ export default function TuAutoAgendaPage() {
                   <tr key={s.id}>
                     <td>{s.name}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <div className={styles.menuWrapper} onClick={e => e.stopPropagation()}>
-                        <button className={styles.menuBtn} onClick={() => setScheduleMenu(scheduleMenu === s.id ? null : s.id)}>⋮</button>
+                      <div className={styles.menuWrapper}>
+                        <button className={styles.menuBtn} onClick={e => { e.stopPropagation(); setScheduleMenu(scheduleMenu === s.id ? null : s.id); }}>⋮</button>
                         {scheduleMenu === s.id && (
                           <div className={styles.menuDropdown}>
                             <button className={styles.menuItem} onClick={() => openEditSchedule(s)}>Editar</button>
@@ -317,8 +332,8 @@ export default function TuAutoAgendaPage() {
                     <td>{t.title} · {t.durationMinutes} min</td>
                     <td>{t.schedule?.name || '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <div className={styles.menuWrapper} onClick={e => e.stopPropagation()}>
-                        <button className={styles.menuBtn} onClick={() => setTypeMenu(typeMenu === t.id ? null : t.id)}>⋮</button>
+                      <div className={styles.menuWrapper}>
+                        <button className={styles.menuBtn} onClick={e => { e.stopPropagation(); setTypeMenu(typeMenu === t.id ? null : t.id); }}>⋮</button>
                         {typeMenu === t.id && (
                           <div className={styles.menuDropdown}>
                             <button className={styles.menuItem} onClick={() => { router.push(`/tu-autoagenda/types/${t.id}`); setTypeMenu(null); }}>Editar</button>

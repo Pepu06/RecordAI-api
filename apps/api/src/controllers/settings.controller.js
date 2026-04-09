@@ -98,7 +98,7 @@ async function getOnboarding(req, res, next) {
     const [tenantResult, userResult, servicesResult] = await Promise.all([
       supabase
         .from('tenants')
-        .select('business_name, message_template, messaging_enabled, onboarding_completed, onboarding_step')
+        .select('business_name, message_template, messaging_enabled, onboarding_completed, onboarding_step, autoagenda_enabled')
         .eq('id', req.tenantId)
         .single(),
       supabase
@@ -124,6 +124,7 @@ async function getOnboarding(req, res, next) {
       calendar_format:  { done: (tenant.onboarding_step || 0) >= 3 },
       first_service:    { done: serviceCount > 0 },
       message_template: { done: Boolean(String(tenant.message_template || '').trim()) },
+      autoagenda:       { done: tenant.autoagenda_enabled === true },
       enable_messaging: { done: tenant.messaging_enabled === true },
     };
 
@@ -135,7 +136,7 @@ async function getOnboarding(req, res, next) {
         completed: tenant.onboarding_completed === true,
         currentStep: tenant.onboarding_step || 0,
         completedCount,
-        totalSteps: 6,
+        totalSteps: 7,
         steps,
       },
     });

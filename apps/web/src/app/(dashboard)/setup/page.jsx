@@ -8,6 +8,7 @@ import GoogleCalendar from './steps/GoogleCalendar';
 import CalendarFormat from './steps/CalendarFormat';
 import FirstService from './steps/FirstService';
 import MessageTemplate from './steps/MessageTemplate';
+import AutoAgendaStep from './steps/AutoAgenda';
 import EnableMessaging from './steps/EnableMessaging';
 
 const STEP_NAMES = [
@@ -16,10 +17,11 @@ const STEP_NAMES = [
   'Formato eventos',
   'Servicios',
   'Mensaje',
+  'TuAutoAgenda',
   'Activar',
 ];
 
-const STEP_KEYS = ['business_info', 'google_calendar', 'calendar_format', 'first_service', 'message_template', 'enable_messaging'];
+const STEP_KEYS = ['business_info', 'google_calendar', 'calendar_format', 'first_service', 'message_template', 'autoagenda', 'enable_messaging'];
 
 export default function SetupPage() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -60,7 +62,8 @@ export default function SetupPage() {
       case 2: return <CalendarFormat onNext={goNext} onBack={goBack} onSkip={goSkip} />;
       case 3: return <FirstService services={services} onNext={goNext} onBack={goBack} onSkip={goSkip} />;
       case 4: return <MessageTemplate data={settings} onNext={goNext} onBack={goBack} onSkip={goSkip} />;
-      case 5: return <EnableMessaging steps={steps} onBack={goBack} />;
+      case 5: return <AutoAgendaStep done={steps.autoagenda?.done} onNext={goNext} onBack={goBack} onSkip={goSkip} />;
+      case 6: return <EnableMessaging steps={steps} onBack={goBack} />;
       default: return null;
     }
   }
