@@ -187,7 +187,7 @@ async function sendTemplate(phone, templateName, params = [], tenantConfig = {})
     type: 'template',
     template: {
       name: templateName,
-      language: { code: env.WHATSAPP_TEMPLATE_LANGUAGE || 'es', policy: 'deterministic' },
+      language: { code: env.WHATSAPP_TEMPLATE_LANGUAGE || 'en', policy: 'deterministic' },
       components,
     },
   };

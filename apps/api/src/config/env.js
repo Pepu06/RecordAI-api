@@ -13,7 +13,7 @@ const envSchema = z.object({
   JWT_SECRET:            z.string().min(8),
   REDIS_URL:             z.string().optional().default(''),
   SENTRY_DSN:            z.string().optional().default(''),
-  WHATSAPP_TEMPLATE_LANGUAGE:  z.string().optional().default('es'),
+  WHATSAPP_TEMPLATE_LANGUAGE:  z.string().optional().default('en'),
   WHATSAPP_VERIFY_TOKEN:       z.string().optional().default('verify'),
   WHATSAPP_PHONE_NUMBER_ID:    z.string().min(1),
   WHATSAPP_ACCESS_TOKEN:       z.string().min(1),
