@@ -4,7 +4,6 @@ const { computeAvailableSlots } = require('../utils/availability');
 const { appointmentsQueue } = require('../workers/queue');
 const { JobName } = require('@autoagenda/shared');
 const { createCalendarEventInCalendar } = require('../services/google');
-const { decrypt } = require('../utils/crypto');
 
 const PHONE_RE = /^\+?[1-9]\d{7,14}$/;
 
@@ -258,7 +257,7 @@ async function createBooking(req, res, next) {
     // Optional: create Google Calendar event
     if (type.google_calendar_id && owner.google_access_token) {
       try {
-        const accessToken = decrypt(owner.google_access_token);
+        const accessToken = owner.google_access_token;
         const endTime = new Date(slotDate.getTime() + type.duration_minutes * 60 * 1000);
         await createCalendarEventInCalendar(accessToken, type.google_calendar_id, {
           summary:       `${type.title} - ${name.trim()}`,

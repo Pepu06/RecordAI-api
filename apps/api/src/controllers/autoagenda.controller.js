@@ -1,8 +1,7 @@
 const { supabase, convertKeys } = require('@autoagenda/db');
 const { AppError, NotFoundError, ValidationError } = require('../errors');
-const { uploadPaymentProof } = require('../services/googleDrive');
+const { uploadProfileImageToDrive } = require('../services/googleDrive');
 const { listCalendars } = require('../services/google');
-const { decrypt } = require('../utils/crypto');
 
 const RESERVED_SLUGS = new Set([
   'admin', 'api', 'auth', 'dashboard', 'book', 'contact', 'privacy', 'terms',
@@ -74,16 +73,14 @@ async function uploadProfileImage(req, res, next) {
 
     const { data: tenant } = await supabase.from('tenants').select('name').eq('id', req.tenantId).single();
 
-    const result = await uploadPaymentProof({
-      tenantId:    req.tenantId,
-      tenantName:  tenant?.name || req.tenantId,
-      tenantEmail: '',
-      plan:        'profile-image',
-      mimeType:    match[1],
+    const result = await uploadProfileImageToDrive({
+      tenantId:   req.tenantId,
+      tenantName: tenant?.name || req.tenantId,
+      mimeType:   match[1],
       base64Data,
     });
 
-    const imageUrl = result.webViewLink || result.imageUrl;
+    const imageUrl = result.imageUrl;
     await supabase.from('tenants').update({ autoagenda_profile_image: imageUrl }).eq('id', req.tenantId);
     return res.json({ success: true, data: { imageUrl } });
   } catch (err) { return next(err); }
@@ -368,7 +365,7 @@ async function getGoogleCalendars(req, res, next) {
       .from('users').select('google_access_token').eq('id', req.userId).single();
     if (!user?.google_access_token) return res.json({ success: true, data: [] });
 
-    const token = decrypt(user.google_access_token);
+    const token = user.google_access_token;
     const calendars = await listCalendars(token);
     return res.json({ success: true, data: calendars });
   } catch (err) { return next(err); }

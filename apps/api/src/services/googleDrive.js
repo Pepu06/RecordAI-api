@@ -123,6 +123,52 @@ function buildPreviewUrl(fileId) {
   return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1600`;
 }
 
+async function getProfileImagesFolderId(accessToken, rootFolderId) {
+  const existing = await findFolderByName(accessToken, 'ProfileImages', rootFolderId);
+  if (existing?.id) return existing.id;
+  const created = await createFolder(accessToken, 'ProfileImages', rootFolderId);
+  return created.id;
+}
+
+async function uploadProfileImageToDrive({ tenantId, tenantName, mimeType, base64Data }) {
+  const accessToken = await getDriveAccessToken();
+  const rootFolderId = await getAutoAgendaFolderId(accessToken);
+  const folderId = await getProfileImagesFolderId(accessToken, rootFolderId);
+
+  const ext = mimeType?.split('/')[1] || 'jpg';
+  const safeTenant = (tenantName || tenantId || 'tenant').replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 40);
+  const fileName = `profile_${safeTenant}_${Date.now()}.${ext}`;
+
+  const metadata = { name: fileName, parents: [folderId] };
+  const boundary = `autoagenda_${Date.now()}`;
+  const fileBuffer = Buffer.from(base64Data, 'base64');
+
+  const multipartBody = Buffer.concat([
+    Buffer.from(`--${boundary}\r\n`),
+    Buffer.from('Content-Type: application/json; charset=UTF-8\r\n\r\n'),
+    Buffer.from(JSON.stringify(metadata)),
+    Buffer.from(`\r\n--${boundary}\r\n`),
+    Buffer.from(`Content-Type: ${mimeType}\r\n\r\n`),
+    fileBuffer,
+    Buffer.from(`\r\n--${boundary}--`),
+  ]);
+
+  const uploadRes = await fetch(`${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,name,webViewLink,createdTime`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
+    body: multipartBody,
+  });
+
+  const uploaded = await uploadRes.json();
+  if (!uploadRes.ok) throw new Error(uploaded?.error?.message || 'Could not upload profile image to Google Drive');
+
+  await makeFilePublic(accessToken, uploaded.id);
+  return { id: uploaded.id, imageUrl: buildPreviewUrl(uploaded.id) };
+}
+
 async function uploadPaymentProof({ tenantId, tenantName, tenantEmail, plan, mimeType, base64Data }) {
   const accessToken = await getDriveAccessToken();
   const rootFolderId = await getAutoAgendaFolderId(accessToken);
@@ -294,6 +340,7 @@ async function updatePaymentProofStatus(fileId, status) {
 
 module.exports = {
   uploadPaymentProof,
+  uploadProfileImageToDrive,
   listPaymentProofs,
   getPaymentProofById,
   updatePaymentProofStatus,
