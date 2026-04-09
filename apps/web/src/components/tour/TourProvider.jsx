@@ -160,16 +160,37 @@ export function TourProvider({ children }) {
     }
   }, [pathname, router, showStep]);
 
-  // ── Resume from localStorage on mount ──────────────
+  // ── Auto-start / resume tour on mount ──────────────
   useEffect(() => {
-    const wasActive   = localStorage.getItem(ACTIVE_KEY) === 'true';
-    const dismissed   = localStorage.getItem(DISMISSED_KEY) === 'true';
-    const savedIdx    = parseInt(localStorage.getItem(STORAGE_KEY) ?? '0', 10);
+    const dismissed = localStorage.getItem(DISMISSED_KEY) === 'true';
+    const wasActive = localStorage.getItem(ACTIVE_KEY) === 'true';
+    const savedIdx  = parseInt(localStorage.getItem(STORAGE_KEY) ?? '0', 10);
 
+    // Resume in-progress tour (mid-tour page reload)
     if (wasActive && !dismissed) {
       setIsActive(true);
       showStep(Number.isNaN(savedIdx) ? 0 : savedIdx);
+      return;
     }
+
+    // Already dismissed — don't bother the user again
+    if (dismissed) return;
+
+    // Check backend: auto-start if onboarding not completed
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/settings/onboarding`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.data?.completed === false) {
+          setIsActive(true);
+          showStep(0);
+        }
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

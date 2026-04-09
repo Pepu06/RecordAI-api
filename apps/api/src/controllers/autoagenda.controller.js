@@ -1,7 +1,7 @@
 const { supabase, convertKeys } = require('@autoagenda/db');
 const { AppError, NotFoundError, ValidationError } = require('../errors');
 const { uploadProfileImageToDrive } = require('../services/googleDrive');
-const { listCalendars } = require('../services/google');
+const { listCalendars, refreshAccessToken } = require('../services/google');
 
 const RESERVED_SLUGS = new Set([
   'admin', 'api', 'auth', 'dashboard', 'book', 'contact', 'privacy', 'terms',
@@ -369,11 +369,24 @@ async function deleteType(req, res, next) {
 async function getGoogleCalendars(req, res, next) {
   try {
     const { data: user } = await supabase
-      .from('users').select('google_access_token').eq('id', req.userId).single();
+      .from('users')
+      .select('google_access_token, google_refresh_token')
+      .eq('id', req.userId).single();
+
     if (!user?.google_access_token) return res.json({ success: true, data: [] });
 
-    const token = user.google_access_token;
-    const calendars = await listCalendars(token);
+    let token = user.google_access_token;
+    let calendars;
+    try {
+      calendars = await listCalendars(token);
+    } catch {
+      // Token likely expired — try refresh
+      if (!user.google_refresh_token) return res.json({ success: true, data: [] });
+      token = await refreshAccessToken(user.google_refresh_token);
+      await supabase.from('users').update({ google_access_token: token }).eq('id', req.userId);
+      calendars = await listCalendars(token);
+    }
+
     return res.json({ success: true, data: calendars });
   } catch (err) { return next(err); }
 }
