@@ -3,14 +3,15 @@ const { AppError, NotFoundError, ValidationError } = require('../errors');
 const { computeAvailableSlots } = require('../utils/availability');
 const { appointmentsQueue } = require('../workers/queue');
 const { JobName } = require('@autoagenda/shared');
-const { createCalendarEventInCalendar } = require('../services/google');
+const { createCalendarEventInCalendar, refreshAccessToken } = require('../services/google');
+const { sendTemplate } = require('../services/whatsapp');
 
 const PHONE_RE = /^\+?[1-9]\d{7,14}$/;
 
 async function _getTenantBySlug(slug) {
   const { data, error } = await supabase
     .from('tenants')
-    .select('id, name, timezone, business_name, message_template, autoagenda_title, autoagenda_description, autoagenda_profile_image, autoagenda_enabled')
+    .select('id, name, timezone, business_name, message_template, autoagenda_title, autoagenda_description, autoagenda_profile_image, autoagenda_enabled, admin_whatsapp, admin_alerts_enabled, whatsapp_provider, whatsapp_phone_number_id, whatsapp_access_token, wasender_api_key')
     .eq('slug', slug)
     .maybeSingle();
   if (error) throw error;
@@ -211,7 +212,7 @@ async function createBooking(req, res, next) {
 
     // Resolve owner userId
     const { data: owner } = await supabase
-      .from('users').select('id, google_access_token').eq('tenant_id', tenant.id).eq('role', 'owner').limit(1).maybeSingle();
+      .from('users').select('id, google_access_token, google_refresh_token').eq('tenant_id', tenant.id).eq('role', 'owner').limit(1).maybeSingle();
     if (!owner) throw new AppError('Error interno: no se encontró el profesional.', 500);
 
     // Find or create contact
@@ -254,10 +255,16 @@ async function createBooking(req, res, next) {
       .single();
     if (aptErr) throw aptErr;
 
-    // Optional: create Google Calendar event
-    if (type.google_calendar_id && owner.google_access_token) {
+    // Optional: create Google Calendar event (with token refresh)
+    if (type.google_calendar_id && (owner.google_access_token || owner.google_refresh_token)) {
       try {
-        const accessToken = owner.google_access_token;
+        let accessToken = owner.google_access_token;
+        if (owner.google_refresh_token) {
+          try {
+            accessToken = await refreshAccessToken(owner.google_refresh_token);
+            await supabase.from('users').update({ google_access_token: accessToken }).eq('id', owner.id);
+          } catch { /* usar token existente */ }
+        }
         const endTime = new Date(slotDate.getTime() + type.duration_minutes * 60 * 1000);
         await createCalendarEventInCalendar(accessToken, type.google_calendar_id, {
           summary:       `${type.title} - ${name.trim()}`,
@@ -265,13 +272,39 @@ async function createBooking(req, res, next) {
           startDateTime: slotISO,
           endDateTime:   endTime.toISOString(),
         });
-      } catch {
-        // Non-fatal — don't block the booking
-      }
+      } catch { /* Non-fatal */ }
     }
 
-    // Enqueue WhatsApp confirmation
+    // Enqueue WhatsApp confirmation to client
     appointmentsQueue.add(JobName.SEND_CONFIRMATION, { appointmentId: appointment.id }).catch(() => {});
+
+    // Admin notification: nuevo_turno
+    if (tenant.admin_alerts_enabled && tenant.admin_whatsapp) {
+      try {
+        const tz = tenant.timezone || 'America/Argentina/Buenos_Aires';
+        const weekday  = slotDate.toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long' });
+        const dayMonth = slotDate.toLocaleDateString('es-AR', { timeZone: tz, day: 'numeric', month: 'numeric' });
+        const dateLabel = `${weekday} ${dayMonth}`;
+        const timeLabel = slotDate.toLocaleTimeString('es-AR', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }) + ' hs';
+
+        const tenantConfig = {
+          provider:              tenant.whatsapp_provider || 'meta',
+          whatsappPhoneNumberId: tenant.whatsapp_phone_number_id,
+          whatsappAccessToken:   tenant.whatsapp_access_token,
+          wasender_api_key:      tenant.wasender_api_key,
+        };
+
+        const { data: service } = await supabase.from('services').select('name').eq('id', type.service_id).single();
+
+        await sendTemplate(tenant.admin_whatsapp, 'nuevo_turno', [
+          name.trim(),
+          cleanPhone,
+          dateLabel,
+          timeLabel,
+          service?.name || type.title,
+        ], tenantConfig);
+      } catch { /* Non-fatal */ }
+    }
 
     return res.status(201).json({
       success: true,

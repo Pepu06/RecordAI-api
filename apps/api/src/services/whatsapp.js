@@ -213,6 +213,11 @@ function buildTemplateText(templateName, params) {
   const bodyParams = rawBody.map(p => (p !== null && typeof p === 'object' && 'value' in p ? p.value : p));
 
   // Map common templates to text format
+  if (templateName === 'nuevo_turno') {
+    const [name, phone, date, time, service] = bodyParams;
+    return `Hola, te informamos que alguien ha AGENDADO un turno en el sistema. Los detalles de la cita son los siguientes:\n\n👤 Paciente: ${name}\n📞 Contacto: ${phone}\n📅 Fecha y hora: ${date} - ${time}\n💼 Servicio solicitado: ${service}\n\nRevisa tu calendario para verlo.`;
+  }
+
   if (templateName === 'admin_cancelacion') {
     const [name, phone, date, time, service] = bodyParams;
     return `🚫 Cancelación de turno\n\nCliente: ${name}\nTeléfono: ${phone}\nFecha: ${date}\nHora: ${time}\nServicio: ${service}`;

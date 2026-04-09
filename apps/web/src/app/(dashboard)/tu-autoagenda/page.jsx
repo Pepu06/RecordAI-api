@@ -41,9 +41,14 @@ export default function TuAutoAgendaPage() {
 
   // Close menus on outside click
   useEffect(() => {
-    const handler = () => { setScheduleMenu(null); setTypeMenu(null); };
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
+    const handler = (e) => {
+      if (!e.target.closest('[data-menu]')) {
+        setScheduleMenu(null);
+        setTypeMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   async function fetchProfile() {
@@ -288,8 +293,8 @@ export default function TuAutoAgendaPage() {
                   <tr key={s.id}>
                     <td>{s.name}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <div className={styles.menuWrapper}>
-                        <button className={styles.menuBtn} onClick={e => { e.stopPropagation(); setScheduleMenu(scheduleMenu === s.id ? null : s.id); }}>⋮</button>
+                      <div className={styles.menuWrapper} data-menu>
+                        <button className={styles.menuBtn} onClick={() => setScheduleMenu(scheduleMenu === s.id ? null : s.id)}>⋮</button>
                         {scheduleMenu === s.id && (
                           <div className={styles.menuDropdown}>
                             <button className={styles.menuItem} onClick={() => openEditSchedule(s)}>Editar</button>
@@ -332,8 +337,8 @@ export default function TuAutoAgendaPage() {
                     <td>{t.title} · {t.durationMinutes} min</td>
                     <td>{t.schedule?.name || '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <div className={styles.menuWrapper}>
-                        <button className={styles.menuBtn} onClick={e => { e.stopPropagation(); setTypeMenu(typeMenu === t.id ? null : t.id); }}>⋮</button>
+                      <div className={styles.menuWrapper} data-menu>
+                        <button className={styles.menuBtn} onClick={() => setTypeMenu(typeMenu === t.id ? null : t.id)}>⋮</button>
                         {typeMenu === t.id && (
                           <div className={styles.menuDropdown}>
                             <button className={styles.menuItem} onClick={() => { router.push(`/tu-autoagenda/types/${t.id}`); setTypeMenu(null); }}>Editar</button>
