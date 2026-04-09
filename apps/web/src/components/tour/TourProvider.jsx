@@ -67,6 +67,12 @@ export function TourProvider({ children }) {
   const prevHighlightRef = useRef(null);
   const popoverRef       = useRef(null);
 
+  // Refs so pathname effect always reads current values (avoid stale closure)
+  const isActiveRef   = useRef(false);
+  const stepIndexRef  = useRef(0);
+  isActiveRef.current  = isActive;
+  stepIndexRef.current = stepIndex;
+
   const step = STEPS[stepIndex] ?? null;
 
   // ── Persist / restore ───────────────────────────────
@@ -134,14 +140,17 @@ export function TourProvider({ children }) {
     tick();
   }, []);
 
-  // ── Route change: if tour active, navigate to step route ──
+  // ── Route change: re-attach highlight after navigation ──
+  // Uses refs so we always read the current stepIndex/isActive, not stale closure values
   useEffect(() => {
-    if (!isActive || !step) return;
-    if (step.route && pathname !== step.route) {
-      router.push(step.route);
+    if (!isActiveRef.current) return;
+    const idx = stepIndexRef.current;
+    const s = STEPS[idx];
+    if (!s) return;
+    if (s.route && pathname !== s.route) {
+      router.push(s.route);
     } else {
-      // Re-attach highlight after route change
-      showStep(stepIndex);
+      showStep(idx);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
