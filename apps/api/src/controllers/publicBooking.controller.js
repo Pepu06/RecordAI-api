@@ -257,7 +257,8 @@ async function createBooking(req, res, next) {
       .single();
     if (aptErr) throw aptErr;
 
-    // Create Google Calendar event (with token refresh, falls back to primary calendar)
+    // Create Google Calendar event
+    console.log('[publicBooking] Calendar check — access_token:', !!owner.google_access_token, 'refresh_token:', !!owner.google_refresh_token);
     if (owner.google_access_token || owner.google_refresh_token) {
       try {
         let accessToken = owner.google_access_token;
@@ -265,21 +266,30 @@ async function createBooking(req, res, next) {
           try {
             accessToken = await refreshAccessToken(owner.google_refresh_token);
             await supabase.from('users').update({ google_access_token: accessToken }).eq('id', owner.id);
-          } catch { /* usar token existente */ }
+            console.log('[publicBooking] Token refreshed successfully');
+          } catch (refreshErr) {
+            console.error('[publicBooking] Token refresh failed:', refreshErr.message);
+          }
         }
         if (accessToken) {
           const calendarId = type.google_calendar_id || 'primary';
           const endTime = new Date(slotDate.getTime() + type.duration_minutes * 60 * 1000);
+          console.log('[publicBooking] Creating calendar event in:', calendarId, 'start:', slotISO);
           await createCalendarEventInCalendar(accessToken, calendarId, {
             summary:       `${type.title} - ${name.trim()}`,
             description:   appointmentNotes || '',
             startDateTime: slotISO,
             endDateTime:   endTime.toISOString(),
           });
+          console.log('[publicBooking] Calendar event created successfully');
+        } else {
+          console.warn('[publicBooking] No valid access token available, skipping calendar event');
         }
       } catch (err) {
-        console.error('[publicBooking] Calendar event creation failed:', err.message);
+        console.error('[publicBooking] Calendar event creation failed:', err.message, err.stack);
       }
+    } else {
+      console.log('[publicBooking] No Google tokens for owner, skipping calendar event');
     }
 
     // Enqueue WhatsApp confirmation to client
