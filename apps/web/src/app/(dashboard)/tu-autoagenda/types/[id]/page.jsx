@@ -29,7 +29,7 @@ const EMPTY_FORM = {
   title: '', description: '', durationMinutes: 30,
   scheduleId: '', serviceId: '', googleCalendarId: '',
   minHoursBeforeBooking: 0, maxDaysInFuture: null,
-  maxConcurrentBookings: 1, extraQuestions: [],
+  maxConcurrentBookings: 1, extraQuestions: [], price: 0,
 };
 
 export default function TypeFormPage() {
@@ -67,6 +67,7 @@ export default function TypeFormPage() {
               maxDaysInFuture:       d.maxDaysInFuture ?? null,
               maxConcurrentBookings: d.maxConcurrentBookings || 1,
               extraQuestions:        d.extraQuestions || [],
+              price:                 d.service?.price ?? d.price ?? 0,
             });
           })
           .catch(() => router.push('/tu-autoagenda'))
@@ -112,6 +113,7 @@ export default function TypeFormPage() {
         maxDaysInFuture:       form.maxDaysInFuture ? Number(form.maxDaysInFuture) : null,
         maxConcurrentBookings: Number(form.maxConcurrentBookings) || 1,
         extraQuestions:        form.extraQuestions.filter(q => q.label.trim()),
+        price:                 Number(form.price) || 0,
       };
       if (isNew) {
         await api.post('/autoagenda/types', payload);
@@ -166,6 +168,19 @@ export default function TypeFormPage() {
               value={form.durationMinutes}
               onChange={e => setField('durationMinutes', e.target.value)}
             />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Precio (opcional)</label>
+            <input
+              type="number" min="0" step="1"
+              className={styles.input}
+              style={{ maxWidth: 200 }}
+              value={form.price}
+              onChange={e => setField('price', e.target.value)}
+              placeholder="0"
+            />
+            <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>Si es gratis, dejalo en 0. Se muestra en la página de reservas.</p>
           </div>
 
           {gcalendars.length > 0 && (

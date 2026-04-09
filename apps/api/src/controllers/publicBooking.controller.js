@@ -27,7 +27,7 @@ async function getPublicProfile(req, res, next) {
 
     const { data: types, error } = await supabase
       .from('autoagenda_types')
-      .select('id, title, description, duration_minutes, schedule:schedules(name)')
+      .select('id, title, description, duration_minutes, schedule:schedules(name), service:services(price)')
       .eq('tenant_id', tenant.id)
       .order('created_at', { ascending: true });
     if (error) throw error;
@@ -46,6 +46,7 @@ async function getPublicProfile(req, res, next) {
           description:     t.description,
           durationMinutes: t.duration_minutes,
           scheduleName:    t.schedule?.name,
+          price:           t.service?.price ?? null,
         })),
       },
     });
@@ -60,7 +61,7 @@ async function getPublicType(req, res, next) {
 
     const { data: type, error } = await supabase
       .from('autoagenda_types')
-      .select('*')
+      .select('*, service:services(price)')
       .eq('id', req.params.typeId)
       .eq('tenant_id', tenant.id)
       .maybeSingle();
@@ -71,6 +72,7 @@ async function getPublicType(req, res, next) {
       success: true,
       data: {
         ...convertKeys(type),
+        price: type.service?.price ?? null,
         profile: {
           title:        tenant.autoagenda_title || tenant.name,
           profileImage: tenant.autoagenda_profile_image,
@@ -255,8 +257,8 @@ async function createBooking(req, res, next) {
       .single();
     if (aptErr) throw aptErr;
 
-    // Optional: create Google Calendar event (with token refresh)
-    if (type.google_calendar_id && (owner.google_access_token || owner.google_refresh_token)) {
+    // Create Google Calendar event (with token refresh, falls back to primary calendar)
+    if (owner.google_access_token || owner.google_refresh_token) {
       try {
         let accessToken = owner.google_access_token;
         if (owner.google_refresh_token) {
@@ -265,14 +267,19 @@ async function createBooking(req, res, next) {
             await supabase.from('users').update({ google_access_token: accessToken }).eq('id', owner.id);
           } catch { /* usar token existente */ }
         }
-        const endTime = new Date(slotDate.getTime() + type.duration_minutes * 60 * 1000);
-        await createCalendarEventInCalendar(accessToken, type.google_calendar_id, {
-          summary:       `${type.title} - ${name.trim()}`,
-          description:   appointmentNotes || '',
-          startDateTime: slotISO,
-          endDateTime:   endTime.toISOString(),
-        });
-      } catch { /* Non-fatal */ }
+        if (accessToken) {
+          const calendarId = type.google_calendar_id || 'primary';
+          const endTime = new Date(slotDate.getTime() + type.duration_minutes * 60 * 1000);
+          await createCalendarEventInCalendar(accessToken, calendarId, {
+            summary:       `${type.title} - ${name.trim()}`,
+            description:   appointmentNotes || '',
+            startDateTime: slotISO,
+            endDateTime:   endTime.toISOString(),
+          });
+        }
+      } catch (err) {
+        console.error('[publicBooking] Calendar event creation failed:', err.message);
+      }
     }
 
     // Enqueue WhatsApp confirmation to client

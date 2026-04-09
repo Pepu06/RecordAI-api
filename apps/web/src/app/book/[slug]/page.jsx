@@ -58,7 +58,12 @@ export default async function BookProfilePage({ params }) {
                 <div style={{ fontWeight: 600, fontSize: 14, color: '#111' }}>{t.title}</div>
                 <div style={{ fontSize: 12.5, color: '#888', marginTop: 2 }}>{t.durationMinutes} min</div>
               </div>
-              <span style={{ color: '#aaa', fontSize: 20 }}>›</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {t.price != null && t.price > 0 && (
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>${t.price.toLocaleString('es-AR')}</span>
+                )}
+                <span style={{ color: '#aaa', fontSize: 20 }}>›</span>
+              </div>
             </Link>
           ))}
         </div>

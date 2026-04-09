@@ -111,7 +111,12 @@ export default function BookTypePage() {
       <div>
         <div style={{ fontSize: 13, color: '#888' }}>{profile?.title}</div>
         <div style={{ fontWeight: 700, fontSize: 15, color: '#111' }}>{typeData?.title}</div>
-        <div style={{ fontSize: 12.5, color: '#888' }}>{typeData?.durationMinutes} min</div>
+        <div style={{ fontSize: 12.5, color: '#888', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span>{typeData?.durationMinutes} min</span>
+          {typeData?.price != null && typeData.price > 0 && (
+            <span style={{ fontWeight: 700, color: '#111', fontSize: 13 }}>${typeData.price.toLocaleString('es-AR')}</span>
+          )}
+        </div>
       </div>
     </div>
   );

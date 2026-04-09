@@ -232,7 +232,7 @@ async function listTypes(req, res, next) {
   try {
     const { data, error } = await supabase
       .from('autoagenda_types')
-      .select('*, service:services(name), schedule:schedules(name)')
+      .select('*, service:services(name, price), schedule:schedules(name)')
       .eq('tenant_id', req.tenantId)
       .order('created_at', { ascending: true });
     if (error) throw error;
@@ -244,7 +244,7 @@ async function getType(req, res, next) {
   try {
     const { data, error } = await supabase
       .from('autoagenda_types')
-      .select('*, service:services(name), schedule:schedules(name)')
+      .select('*, service:services(name, price), schedule:schedules(name)')
       .eq('id', req.params.id)
       .eq('tenant_id', req.tenantId)
       .maybeSingle();
@@ -261,6 +261,7 @@ async function createType(req, res, next) {
       durationMinutes = 30, googleCalendarId,
       minHoursBeforeBooking = 0, maxDaysInFuture,
       maxConcurrentBookings = 1, extraQuestions = [],
+      price = 0,
     } = req.body;
 
     if (!title?.trim()) throw new ValidationError('El título es requerido.');
@@ -277,7 +278,7 @@ async function createType(req, res, next) {
       // Auto-create a matching service
       const { data: svc, error: svcErr } = await supabase
         .from('services')
-        .insert({ tenant_id: req.tenantId, name: title.trim(), duration_minutes: Number(durationMinutes), price: 0 })
+        .insert({ tenant_id: req.tenantId, name: title.trim(), duration_minutes: Number(durationMinutes), price: Number(price) || 0 })
         .select().single();
       if (svcErr) throw svcErr;
       resolvedServiceId = svc.id;
@@ -299,7 +300,7 @@ async function createType(req, res, next) {
       max_days_in_future:       maxDaysInFuture ? Number(maxDaysInFuture) : null,
       max_concurrent_bookings:  Number(maxConcurrentBookings) || 1,
       extra_questions:          extraQuestions,
-    }).select('*, service:services(name), schedule:schedules(name)').single();
+    }).select('*, service:services(name, price), schedule:schedules(name)').single();
     if (error) throw error;
 
     return res.status(201).json({ success: true, data: convertKeys(data) });
@@ -329,7 +330,7 @@ async function updateType(req, res, next) {
     if (b.maxConcurrentBookings !== undefined) updates.max_concurrent_bookings   = Number(b.maxConcurrentBookings) || 1;
     if (b.extraQuestions !== undefined)        updates.extra_questions           = b.extraQuestions;
 
-    if (!Object.keys(updates).length) throw new AppError('No hay campos para actualizar.', 400);
+    if (!Object.keys(updates).length && b.price === undefined) throw new AppError('No hay campos para actualizar.', 400);
 
     // Validate schedule if changed
     if (updates.schedule_id) {
@@ -340,8 +341,13 @@ async function updateType(req, res, next) {
 
     const { data, error } = await supabase
       .from('autoagenda_types').update(updates).eq('id', req.params.id)
-      .select('*, service:services(name), schedule:schedules(name)').single();
+      .select('*, service:services(name, price), schedule:schedules(name)').single();
     if (error) throw error;
+
+    // Update service price if provided
+    if (b.price !== undefined && data.service_id) {
+      await supabase.from('services').update({ price: Number(b.price) || 0 }).eq('id', data.service_id);
+    }
 
     return res.json({ success: true, data: convertKeys(data) });
   } catch (err) { return next(err); }

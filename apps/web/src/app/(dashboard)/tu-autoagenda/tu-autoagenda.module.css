@@ -222,7 +222,7 @@
 
 /* Table */
 .tableWrapper {
-  overflow-x: auto;
+  overflow: visible;
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
 }
@@ -231,6 +231,7 @@
   width: 100%;
   border-collapse: collapse;
   background: var(--surface);
+  overflow: visible;
 }
 
 .table th {
@@ -293,9 +294,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  z-index: 100;
+  z-index: 500;
   min-width: 130px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .menuItem {

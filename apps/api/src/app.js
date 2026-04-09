@@ -22,6 +22,8 @@ const publicBookingRoutes = require('./routes/publicBooking.routes');
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(helmet({ contentSecurityPolicy: false }));
 
 const allowedOrigins = env.CORS_ORIGIN
