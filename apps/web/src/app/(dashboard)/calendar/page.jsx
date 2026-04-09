@@ -127,6 +127,7 @@ export default function CalendarPage() {
     setSavingDefault(true);
     try {
       await api.put('/calendar/default', { calendarId: calId });
+      await fetchEvents();
     } catch (err) {
       alert(err.message || 'Error al guardar el calendario predeterminado');
     } finally {
