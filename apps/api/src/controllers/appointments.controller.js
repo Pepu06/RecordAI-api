@@ -58,6 +58,7 @@ async function create(req, res, next) {
         user_id:      req.userId,
         scheduled_at: new Date(scheduledAt).toISOString(),
         notes,
+        status:       'sin_enviar',
       })
       .select(APPOINTMENT_SELECT)
       .single();

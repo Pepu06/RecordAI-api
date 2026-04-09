@@ -255,6 +255,7 @@ async function createBooking(req, res, next) {
         scheduled_at:      slotISO,
         notes:             appointmentNotes,
         autoagenda_type_id: type.id,
+        status:            'sin_enviar',
       })
       .select('id, scheduled_at')
       .single();
@@ -288,13 +289,19 @@ async function createBooking(req, res, next) {
             }
           }
 
-          await createCalendarEventInCalendar(accessToken, calendarId, {
+          const calEvent = await createCalendarEventInCalendar(accessToken, calendarId, {
             summary:       `${name.trim()} - ${type.title}`,
             description:   descParts.join('\n'),
             startDateTime: slotISO,
             endDateTime:   endTime.toISOString(),
           });
           console.log('[publicBooking] Calendar event created successfully');
+          if (calEvent?.id) {
+            await supabase
+              .from('appointments')
+              .update({ google_event_id: calEvent.id })
+              .eq('id', appointment.id);
+          }
         } else {
           console.warn('[publicBooking] No valid access token available, skipping calendar event');
         }
