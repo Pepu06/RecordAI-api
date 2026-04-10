@@ -12,11 +12,47 @@ function onlyDigits(value) {
 }
 
 /**
- * Normaliza un número argentino tomando los últimos 8 dígitos y anteponiendo +54911.
+ * Normaliza un número de teléfono argentino.
+ * Reglas (de mayor a menor completitud):
+ *   +5491140962011  (13 dígitos con código de área 11) → tal cual
+ *   +54922XXXXXXXX  (completo con otra área)           → tal cual
+ *   541140962011    (sin +, 12 dígitos)                → agrega '+'
+ *   5491140962011   (sin +, 13 dígitos p/área 11)      → agrega '+'
+ *   1140962011      (10 dígitos, área sin 9)           → +549 + número
+ *   40962011        (8 dígitos, sólo abonado)          → +54911 + número
  */
 function normalizePhone(raw = '') {
   const digits = onlyDigits(String(raw));
   if (!digits) return null;
+
+  // Completo: +54 9 <área> <abonado> → 13 dígitos empezando con 549
+  if (digits.startsWith('549') && digits.length >= 12) {
+    return `+${digits}`;
+  }
+
+  // Tiene 54 pero le falta el 9 móvil: 54 + área + abonado (ej: 541140962011, 12 dígitos)
+  if (digits.startsWith('54') && digits.length >= 11) {
+    return `+549${digits.slice(2)}`;
+  }
+
+  // Tiene código de área argentino sin el 54: empieza con 9 + área + abonado (≥11 dígitos)
+  // ej: 91140962011 (11 dígitos) → +54 + digits
+  if (digits.startsWith('9') && digits.length >= 11) {
+    return `+54${digits}`;
+  }
+
+  // Tiene código de área sin el 9 móvil: 10 dígitos (ej: 1140962011)
+  // Insertamos el 9 entre 54 y el área
+  if (digits.length === 10) {
+    return `+549${digits}`;
+  }
+
+  // Solo abonado: 8 dígitos → asumimos área 11 (Buenos Aires)
+  if (digits.length === 8) {
+    return `+54911${digits}`;
+  }
+
+  // Cualquier otro largo: intento genérico tomando los últimos 8 con área 11
   const last8 = digits.slice(-8);
   return last8.length === 8 ? `+54911${last8}` : null;
 }
