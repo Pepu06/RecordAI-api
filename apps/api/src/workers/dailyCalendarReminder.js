@@ -1,6 +1,8 @@
 const cron = require('node-cron');
 const { supabase } = require('@autoagenda/db');
 const { sendTemplate } = require('../services/whatsapp');
+const { getCalendarEvent } = require('../services/google');
+const { getValidToken } = require('../controllers/calendar.controller');
 const logger = require('../config/logger');
 const { formatTemplateHour } = require('../utils/datetime');
 const { appointmentsQueue } = require('./queue');
@@ -27,10 +29,86 @@ function getReminderDateTimeUTC(scheduledAt, timezone, reminderType, reminderTim
 
 
 
+// Cache owner tokens per tenant per cron run to avoid redundant DB/API calls
+async function getOwnerTokenForTenant(tenantId, cache) {
+  if (cache.has(tenantId)) return cache.get(tenantId);
+
+  const { data: owner } = await supabase
+    .from('users')
+    .select('id, default_google_calendar_id')
+    .eq('tenant_id', tenantId)
+    .eq('role', 'owner')
+    .maybeSingle();
+
+  if (!owner) { cache.set(tenantId, null); return null; }
+
+  const accessToken = await getValidToken(owner.id);
+  const result = accessToken
+    ? { accessToken, calendarId: owner.default_google_calendar_id || 'primary' }
+    : null;
+  cache.set(tenantId, result);
+  return result;
+}
+
+/**
+ * Syncs scheduled_at for all future appointments that have a google_event_id.
+ * Runs before the reminder loop so rescheduled events get their date updated
+ * before the reminder timing check happens.
+ */
+async function syncGCalDates(ownerTokenCache) {
+  const now = new Date();
+
+  const { data: appointments, error } = await supabase
+    .from('appointments')
+    .select('id, tenant_id, scheduled_at, google_event_id')
+    .not('google_event_id', 'is', null)
+    .is('reminder_sent_at', null)
+    .in('status', ['pending', 'notified', 'sin_enviar'])
+    .gte('scheduled_at', now.toISOString());
+
+  if (error) {
+    logger.error({ err: error.message }, 'syncGCalDates: failed to fetch appointments');
+    return;
+  }
+
+  for (const appt of appointments || []) {
+    const ownerData = await getOwnerTokenForTenant(appt.tenant_id, ownerTokenCache);
+    if (!ownerData) continue;
+
+    let gcalEvent;
+    try {
+      gcalEvent = await getCalendarEvent(ownerData.accessToken, appt.google_event_id, ownerData.calendarId);
+    } catch {
+      continue; // skip on API error, don't block reminder loop
+    }
+
+    if (!gcalEvent || gcalEvent.status === 'cancelled') {
+      await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
+      logger.info({ appointmentId: appt.id }, 'syncGCalDates: event deleted/cancelled, appointment marked cancelled');
+      continue;
+    }
+
+    const gcalStart = gcalEvent.start?.dateTime || gcalEvent.start?.date;
+    if (!gcalStart) continue;
+
+    const gcalMs = new Date(gcalStart).getTime();
+    const dbMs = new Date(appt.scheduled_at).getTime();
+    if (Math.abs(gcalMs - dbMs) > 60_000) {
+      await supabase.from('appointments')
+        .update({ scheduled_at: new Date(gcalStart).toISOString() })
+        .eq('id', appt.id);
+      logger.info({ appointmentId: appt.id, oldDate: appt.scheduled_at, newDate: gcalStart }, 'syncGCalDates: scheduled_at updated from GCal');
+    }
+  }
+}
+
 async function runDailyReminders() {
   logger.info('Running daily calendar reminders...');
 
   const now = new Date();
+  const ownerTokenCache = new Map();
+
+  await syncGCalDates(ownerTokenCache);
 
   // Pull near-future and recent appointments; we'll pick exact due reminders in code
   const windowStart = new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString();
@@ -81,15 +159,6 @@ async function runDailyReminders() {
     const deltaMs = Math.abs(now.getTime() - target.getTime());
     if (deltaMs > 60 * 1000) continue;
 
-    const dateObj = new Date(appt.scheduled_at);
-    const fechaLabel = dateObj.toLocaleDateString('es-AR', {
-      timeZone: tz,
-      weekday: 'long',
-      day: '2-digit',
-      month: '2-digit',
-    });
-    const horaLabel = formatTemplateHour(dateObj, { timeZone: tz, timeFormat });
-
     const encabezado = (appt.tenant?.business_name || 'AutoAgenda').slice(0, 40);
     const mensajeEditable = (appt.tenant?.message_template || '').replace(/[\n\r\t]/g, ' ').replace(/ {5,}/g, '    ');
     const ubicacion = appt.tenant?.location || '';
@@ -102,6 +171,31 @@ async function runDailyReminders() {
     };
 
     try {
+      // Final GCal check just before sending: catch cancellations that happened
+      // after syncGCalDates ran at the top of this cron tick.
+      if (appt.google_event_id) {
+        const ownerData = await getOwnerTokenForTenant(appt.tenant_id, ownerTokenCache);
+        if (ownerData) {
+          let gcalEvent;
+          try { gcalEvent = await getCalendarEvent(ownerData.accessToken, appt.google_event_id, ownerData.calendarId); } catch { /* skip */ }
+          if (gcalEvent !== undefined && (!gcalEvent || gcalEvent.status === 'cancelled')) {
+            await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
+            logger.info({ appointmentId: appt.id }, 'Reminder skipped: GCal event deleted or cancelled');
+            continue;
+          }
+        }
+      }
+
+      // Calculate date/time labels after sync so they reflect any same-day time update
+      const dateObj = new Date(appt.scheduled_at);
+      const fechaLabel = dateObj.toLocaleDateString('es-AR', {
+        timeZone: tz,
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+      });
+      const horaLabel = formatTemplateHour(dateObj, { timeZone: tz, timeFormat });
+
       // Claim atomically first — only succeeds if reminder_sent_at is still null
       // This prevents duplicate sends when multiple instances run in parallel
       const reminderTime = new Date().toISOString();

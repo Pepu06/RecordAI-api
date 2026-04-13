@@ -628,4 +628,4 @@ async function createEvent(req, res, next) {
 }
 
 
-module.exports = { calendarStatus, connect, disconnect, events, createEvent, updateEventStatus, remindEvent, getDefaultCalendar, setDefaultCalendar };
+module.exports = { calendarStatus, connect, disconnect, events, createEvent, updateEventStatus, remindEvent, getDefaultCalendar, setDefaultCalendar, getValidToken, getOwnerCalendarId };
