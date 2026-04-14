@@ -74,7 +74,7 @@ async function connectEmbeddedSignup(req, res, next) {
     // Exchange code for user token
     let userToken;
     try {
-      userToken = await exchangeCodeForUserToken(code, redirectUri);
+      userToken = await exchangeCodeForUserToken(code);
     } catch (err) {
       throw new AppError(`Error al autenticar con Meta: ${err.message}`, 400);
     }
