@@ -46,7 +46,7 @@ async function sendWasenderMessage(phone, text, token) {
 
 async function sendMetaTextMessage(phone, text, tenantConfig = {}) {
   const phoneNumberId = tenantConfig.whatsappPhoneNumberId || env.WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = tenantConfig.whatsappAccessToken || env.WHATSAPP_ACCESS_TOKEN;
+  const accessToken = tenantConfig.whatsappAccessToken || env.META_SYSTEM_USER_TOKEN || env.WHATSAPP_ACCESS_TOKEN;
   const messagesUrl = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
 
   const payload = {
@@ -80,7 +80,7 @@ async function sendInteractiveButtons(phone, body, buttons, tenantConfig = {}) {
   }
 
   const phoneNumberId = tenantConfig.whatsappPhoneNumberId || env.WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = tenantConfig.whatsappAccessToken || env.WHATSAPP_ACCESS_TOKEN;
+  const accessToken = tenantConfig.whatsappAccessToken || env.META_SYSTEM_USER_TOKEN || env.WHATSAPP_ACCESS_TOKEN;
   const messagesUrl = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
 
   const payload = {
@@ -145,7 +145,7 @@ async function sendTemplate(phone, templateName, params = [], tenantConfig = {})
   }
 
   const phoneNumberId = tenantConfig.whatsappPhoneNumberId || env.WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = tenantConfig.whatsappAccessToken || env.WHATSAPP_ACCESS_TOKEN;
+  const accessToken = tenantConfig.whatsappAccessToken || env.META_SYSTEM_USER_TOKEN || env.WHATSAPP_ACCESS_TOKEN;
   const messagesUrl = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
 
   let headerParams = [];

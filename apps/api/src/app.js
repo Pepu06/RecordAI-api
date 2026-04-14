@@ -19,6 +19,7 @@ const paymentProofsRoutes = require('./routes/paymentProofs.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const autoagendaRoutes = require('./routes/autoagenda.routes');
 const publicBookingRoutes = require('./routes/publicBooking.routes');
+const whatsappRoutes = require('./routes/whatsapp.routes');
 
 const app = express();
 
@@ -41,7 +42,11 @@ app.use(cors({
 }));
 
 // Increase body size limit for payment proof uploads (images can be large)
-app.use(express.json({ limit: '10mb' }));
+// rawBody is stored for HMAC verification of Meta webhook signatures
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.get('/', (req, res) => {
@@ -70,6 +75,7 @@ app.use('/subscription', subscriptionRoutes);
 app.use('/', paymentProofsRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/autoagenda', autoagendaRoutes);
+app.use('/whatsapp', whatsappRoutes);
 
 // Sentry error handler must come before other error middleware
 if (env.SENTRY_DSN && env.NODE_ENV === 'production') {

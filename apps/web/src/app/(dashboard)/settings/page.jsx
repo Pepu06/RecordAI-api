@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '../../../lib/api';
 import { clearAuth } from '../../../lib/auth';
 import styles from './settings.module.css';
+import WhatsappSection from './WhatsappSection';
 
 const TIMEZONES = [
   { value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires (GMT-3)' },
@@ -202,6 +203,9 @@ export default function SettingsPage() {
           </Field>
         </div>
       </section>
+
+      {/* WHATSAPP */}
+      <WhatsappSection />
 
       {/* MENSAJE */}
       <section className={styles.section} data-tour="settings-mensaje">
