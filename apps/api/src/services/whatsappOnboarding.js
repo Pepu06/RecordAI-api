@@ -29,7 +29,6 @@ async function exchangeCodeForUserToken(code) {
   const params = new URLSearchParams({
     client_id:     env.META_APP_ID,
     client_secret: env.META_APP_SECRET,
-    redirect_uri:  '',
     code,
   });
 
