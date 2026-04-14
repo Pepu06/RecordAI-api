@@ -81,6 +81,7 @@ export default function WhatsappSection() {
 
     window.FB.login(
       (response) => {
+        console.log('[FB.login response]', JSON.stringify(response, null, 2));
         if (response.authResponse?.code) {
           setSaving(true); setError('');
           api.post('/whatsapp/connect/embedded-signup', { code: response.authResponse.code, redirectUri })
