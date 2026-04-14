@@ -67,8 +67,9 @@ async function connectEmbeddedSignup(req, res, next) {
       throw new AppError('Embedded Signup no está configurado en este servidor', 501);
     }
 
-    const { code, redirectUri } = req.body;
+    const { code, authResponse } = req.body;
     if (!code) throw new ValidationError('code es requerido');
+    logger.info({ authResponse }, '[WhatsApp] Embedded Signup authResponse received');
 
     // Exchange code for user token
     let userToken;

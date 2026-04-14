@@ -77,14 +77,12 @@ export default function WhatsappSection() {
       return;
     }
 
-    const redirectUri = window.location.origin;
-
     window.FB.login(
       (response) => {
         console.log('[FB.login response]', JSON.stringify(response, null, 2));
         if (response.authResponse?.code) {
           setSaving(true); setError('');
-          api.post('/whatsapp/connect/embedded-signup', { code: response.authResponse.code, redirectUri })
+          api.post('/whatsapp/connect/embedded-signup', { code: response.authResponse.code, authResponse: response.authResponse })
             .then(() => loadStatus())
             .catch(err => setError(err.message || 'Error al conectar con Meta'))
             .finally(() => setSaving(false));
@@ -94,7 +92,6 @@ export default function WhatsappSection() {
         config_id: configId,
         response_type: 'code',
         override_default_response_type: true,
-        redirect_uri: redirectUri,
         extras: { sessionInfoVersion: 3 },
       }
     );
