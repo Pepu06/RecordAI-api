@@ -56,7 +56,9 @@ app.get('/', (req, res) => {
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // Public confirmation pages + public booking (no auth), rate limited
-app.use('/', confirmationLimiter, confirmationRoutes);
+// Apply limiter only to the specific public paths, not all routes
+app.use(['/turno', '/accion', '/c'], confirmationLimiter);
+app.use('/', confirmationRoutes);
 app.use('/public', confirmationLimiter, publicBookingRoutes);
 
 app.use('/auth', authLimiter, authRoutes);
