@@ -237,6 +237,25 @@ async function createCalendarEventInCalendar(accessToken, calendarId, eventData)
   return createCalendarEvent(accessToken, eventData, calendarId || 'primary');
 }
 
+async function watchCalendar(accessToken, calendarId, channelId, webhookUrl) {
+  const res = await fetch(`${CAL_BASE}/calendars/${encodeURIComponent(calendarId)}/events/watch`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: channelId, type: 'web_hook', address: webhookUrl }),
+  });
+  if (!res.ok) return null;
+  return res.json(); // { id, resourceId, expiration (ms timestamp string) }
+}
+
+async function stopCalendarWatch(accessToken, channelId, resourceId) {
+  const res = await fetch(`${CAL_BASE}/channels/stop`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: channelId, resourceId }),
+  });
+  return res.ok || res.status === 404;
+}
+
 module.exports = {
   exchangeCodeForTokens,
   refreshAccessToken,
@@ -250,4 +269,6 @@ module.exports = {
   createCalendarEvent,
   listCalendars,
   createCalendarEventInCalendar,
+  watchCalendar,
+  stopCalendarWatch,
 };

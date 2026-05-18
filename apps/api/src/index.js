@@ -8,6 +8,7 @@ const { startDailyReminderCron } = require('./workers/dailyCalendarReminder');
 const { startDailyReportCron } = require('./workers/dailyReportCron');
 const { startMonthlyBillingCron } = require('./workers/monthlyBillingCron');
 const { startSubscriptionRenewalCron } = require('./workers/subscriptionRenewalCron');
+const { startCalendarWatchRenewalCron } = require('./workers/calendarWatchRenewalCron');
 
 logger.info(`[Boot] Queue: ${env.REDIS_URL ? 'enabled' : 'disabled'}`);
 
@@ -21,4 +22,5 @@ app.listen(env.PORT, () => {
   startDailyReportCron();
   startMonthlyBillingCron();
   startSubscriptionRenewalCron();
+  startCalendarWatchRenewalCron();
 });

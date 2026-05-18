@@ -1,6 +1,8 @@
 const { supabase, convertKeys } = require('@autoagenda/db');
 const logger = require('../config/logger');
-const { getCalendarEvents, getCalendarEvent, refreshAccessToken, exchangeCodeForTokens, getUserInfo, updateEventColor, updateEventTitleAndColor, createCalendarEvent, listCalendars } = require('../services/google');
+const { getCalendarEvents, getCalendarEvent, refreshAccessToken, exchangeCodeForTokens, getUserInfo, updateEventColor, updateEventTitleAndColor, createCalendarEvent, listCalendars, watchCalendar, stopCalendarWatch } = require('../services/google');
+const env = require('../config/env');
+const crypto = require('crypto');
 const { sendTemplate } = require('../services/whatsapp');
 const { appointmentsQueue } = require('../workers/queue');
 const { trackMessageSent } = require('../workers/usageTracking');
@@ -174,15 +176,54 @@ async function connect(req, res, next) {
       google_reconnect_required: false,
     }).eq('id', req.userId);
 
+    // Register Google Calendar push notifications (best effort — don't fail connect if watch fails)
+    registerCalendarWatch(req.userId, access_token).catch(err =>
+      logger.warn({ err, userId: req.userId }, 'Failed to register calendar watch on connect')
+    );
+
     return res.json({ success: true });
   } catch (err) { return next(err); }
 }
 
+async function registerCalendarWatch(userId, accessToken) {
+  const { data: user } = await supabase
+    .from('users').select('tenant_id').eq('id', userId).single();
+  if (!user) return;
+
+  const calendarId = await getOwnerCalendarId(user.tenant_id);
+  const channelId = crypto.randomUUID();
+  const webhookUrl = `${env.BASE_URL}/webhook/google-calendar`;
+
+  const watch = await watchCalendar(accessToken, calendarId, channelId, webhookUrl);
+  if (!watch?.id) return;
+
+  await supabase.from('users').update({
+    google_channel_id: watch.id,
+    google_resource_id: watch.resourceId,
+    google_watch_expiry: new Date(Number(watch.expiration)).toISOString(),
+  }).eq('id', userId);
+
+  logger.info({ userId, channelId: watch.id, expiry: watch.expiration }, 'Calendar watch registered');
+}
+
 async function disconnect(req, res, next) {
   try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('google_access_token, google_channel_id, google_resource_id')
+      .eq('id', req.userId).single();
+
+    if (user?.google_channel_id && user?.google_resource_id && user?.google_access_token) {
+      stopCalendarWatch(user.google_access_token, user.google_channel_id, user.google_resource_id)
+        .catch(err => logger.warn({ err }, 'Failed to stop calendar watch on disconnect'));
+    }
+
     await supabase.from('users').update({
       google_access_token: null,
       google_refresh_token: null,
+      google_channel_id: null,
+      google_resource_id: null,
+      google_watch_expiry: null,
     }).eq('id', req.userId);
     return res.json({ success: true });
   } catch (err) { return next(err); }
@@ -219,6 +260,105 @@ async function setDefaultCalendar(req, res, next) {
     await supabase.from('users').update({ default_google_calendar_id: calendarId }).eq('id', req.userId);
     return res.json({ success: true, data: { calendarId } });
   } catch (err) { return next(err); }
+}
+
+async function runCalendarSync(userId, tenantId) {
+  const { data: tenantSettings } = await supabase
+    .from('tenants').select('business_name, message_template').eq('id', tenantId).single();
+  if (!hasReminderConfig(tenantSettings)) return { created: 0 };
+
+  const accessToken = await getValidToken(userId);
+  if (!accessToken) return { created: 0 };
+
+  const defaultCalendarId = await getOwnerCalendarId(tenantId);
+  const items = await getCalendarEvents(accessToken, defaultCalendarId, { days: 365 }) || [];
+
+  const { data: synced } = await supabase
+    .from('appointments').select('google_event_id')
+    .eq('tenant_id', tenantId).not('google_event_id', 'is', null);
+  const syncedIds = new Set((synced || []).map(a => a.google_event_id));
+
+  const newEvents = items
+    .filter(e => e.start?.dateTime || e.start?.date)
+    .map(e => ({
+      id: e.id,
+      title: e.summary || '',
+      phone: extractDataFromDescription(e.description || '').phone,
+      start: e.start?.dateTime || `${e.start.date}T12:00:00`,
+      end: e.end?.dateTime || e.end?.date,
+      description: e.description || '',
+    }))
+    .filter(e => !!e.phone && !syncedIds.has(e.id));
+
+  if (!newEvents.length) return { created: 0 };
+
+  const { data: existingContacts } = await supabase
+    .from('contacts').select('id, name, phone').eq('tenant_id', tenantId);
+  const contacts = [...(existingContacts || [])];
+
+  for (const event of newEvents) {
+    const phoneDigits = onlyDigits(event.phone);
+    const phoneLast10 = phoneDigits.slice(-10);
+    const exists = contacts.some(c => {
+      const cd = onlyDigits(c.phone);
+      return cd === phoneDigits || (phoneLast10 && cd.endsWith(phoneLast10));
+    });
+    if (exists) continue;
+    const { name: contactName } = extractFromTitle(event.title);
+    const { dni, birthDate, email } = extractDataFromDescription(event.description);
+    const { data: created } = await supabase.from('contacts').insert({
+      tenant_id: tenantId, name: contactName, phone: event.phone,
+      ...(email && { email }), ...(dni && { dni }), ...(birthDate && { birth_date: birthDate }),
+    }).select('id, name, phone').single();
+    if (created) contacts.push(created);
+  }
+
+  let { data: allServices } = await supabase
+    .from('services').select('id, name').eq('tenant_id', tenantId).order('created_at', { ascending: true });
+  if (!allServices?.length) {
+    const { data: svc } = await supabase.from('services')
+      .insert({ tenant_id: tenantId, name: 'Consulta general', duration_minutes: 30, price: 0 })
+      .select('id, name').single();
+    allServices = svc ? [svc] : [];
+  }
+
+  async function matchService(titleService, durationMinutes = 30) {
+    if (!titleService) return allServices[0];
+    const matched = allServices.find(s => s.name.toLowerCase() === titleService.toLowerCase().trim());
+    if (matched) return matched;
+    const { data: created } = await supabase.from('services')
+      .insert({ tenant_id: tenantId, name: titleService.trim(), duration_minutes: durationMinutes, price: 0 })
+      .select('id, name').single();
+    if (created) { allServices.push(created); return created; }
+    return allServices[0];
+  }
+
+  let created = 0;
+  for (const event of newEvents) {
+    const phoneDigits = onlyDigits(event.phone);
+    const phoneLast10 = phoneDigits.slice(-10);
+    const contact = contacts.find(c => {
+      const cd = onlyDigits(c.phone);
+      return cd === phoneDigits || (phoneLast10 && cd.endsWith(phoneLast10));
+    });
+    if (!contact) continue;
+    const duration = event.end && event.start
+      ? Math.round((new Date(event.end) - new Date(event.start)) / 60000) : 30;
+    const { service: titleService } = extractFromTitle(event.title);
+    const service = await matchService(titleService, duration);
+    const { data: appointment } = await supabase.from('appointments').insert({
+      tenant_id: tenantId, contact_id: contact.id, service_id: service.id,
+      user_id: userId, scheduled_at: new Date(event.start).toISOString(),
+      status: 'sin_enviar', google_event_id: event.id,
+    }).select('id').single();
+    if (appointment) {
+      syncedIds.add(event.id);
+      appointmentsQueue.add(JobName.SEND_CONFIRMATION, { appointmentId: appointment.id }).catch(() => {});
+      created++;
+    }
+  }
+
+  return { created };
 }
 
 async function events(req, res, next) {
@@ -292,125 +432,10 @@ async function events(req, res, next) {
       }
     }
 
-    let contacts = [];
-
     if (data.length && canCreateAppointments) {
-      const { data: existingContacts, error: contactsError } = await supabase
-        .from('contacts')
-        .select('id, name, phone')
-        .eq('tenant_id', req.tenantId);
-      if (contactsError) throw contactsError;
-
-      contacts = [...(existingContacts || [])];
-
-      for (const event of data) {
-        const phoneDigits = onlyDigits(event.phone);
-        const phoneLast10 = phoneDigits.slice(-10);
-
-        const alreadyExists = contacts.some((c) => {
-          const cDigits = onlyDigits(c.phone);
-          return cDigits === phoneDigits || (phoneLast10 && cDigits.endsWith(phoneLast10));
-        });
-
-        if (alreadyExists) continue;
-
-        const { name: contactName } = extractFromTitle(event.title);
-        const { dni, birthDate, email: descEmail } = extractDataFromDescription(event.description || '');
-
-        const { data: createdContact, error: createContactError } = await supabase
-          .from('contacts')
-          .insert({
-            tenant_id: req.tenantId,
-            name: contactName,
-            phone: event.phone,
-            ...(descEmail   && { email:      descEmail }),
-            ...(dni         && { dni }),
-            ...(birthDate   && { birth_date: birthDate }),
-          })
-          .select('id, name, phone')
-          .single();
-
-        if (createContactError) throw createContactError;
-        contacts.push(createdContact);
-      }
-
-      let { data: allServices } = await supabase
-        .from('services')
-        .select('id, name')
-        .eq('tenant_id', req.tenantId)
-        .order('created_at', { ascending: true });
-
-      if (!allServices?.length) {
-        const { data: createdService, error: createServiceError } = await supabase
-          .from('services')
-          .insert({ tenant_id: req.tenantId, name: 'Consulta general', duration_minutes: 30, price: 0 })
-          .select('id, name')
-          .single();
-        if (createServiceError) throw createServiceError;
-        allServices = [createdService];
-      }
-
-      async function matchService(titleService, durationMinutes = 30) {
-        if (!titleService) return allServices[0];
-
-        const serviceName = titleService.trim();
-        const matched = allServices.find(s => s.name.toLowerCase() === serviceName.toLowerCase());
-        if (matched) return matched;
-
-        const { data: created, error: createErr } = await supabase
-          .from('services')
-          .insert({ tenant_id: req.tenantId, name: serviceName, duration_minutes: durationMinutes, price: 0 })
-          .select('id, name')
-          .single();
-        if (createErr) {
-          logger.warn({ createErr, serviceName }, 'Failed to create service from description, using default');
-          return allServices[0];
-        }
-        allServices.push(created);
-        return created;
-      }
-
-      for (const event of data) {
-        if (syncedIds.has(event.id)) continue;
-
-        const phoneDigits = onlyDigits(event.phone);
-        const phoneLast10 = phoneDigits.slice(-10);
-
-        const contact = contacts.find((c) => {
-          const cDigits = onlyDigits(c.phone);
-          return cDigits === phoneDigits || (phoneLast10 && cDigits.endsWith(phoneLast10));
-        });
-        if (!contact) continue;
-
-        const eventDuration = event.end && event.start
-          ? Math.round((new Date(event.end) - new Date(event.start)) / 60000)
-          : 30;
-        const { service: titleService } = extractFromTitle(event.title);
-        const service = await matchService(titleService, eventDuration);
-
-        const { data: newAppointment, error: createAppointmentError } = await supabase
-          .from('appointments')
-          .insert({
-            tenant_id: req.tenantId,
-            contact_id: contact.id,
-            service_id: service.id,
-            user_id: req.userId,
-            scheduled_at: new Date(event.start).toISOString(),
-            status: 'sin_enviar',
-            google_event_id: event.id,
-          })
-          .select('id, scheduled_at')
-          .single();
-
-        if (createAppointmentError) throw createAppointmentError;
-        syncedIds.add(event.id);
-
-        if (newAppointment) {
-          const queueJob = (name, opts = {}) =>
-            appointmentsQueue.add(name, { appointmentId: newAppointment.id }, opts).catch(() => { });
-          queueJob(JobName.SEND_CONFIRMATION);
-        }
-      }
+      runCalendarSync(req.userId, req.tenantId).catch(err =>
+        logger.warn({ err, tenantId: req.tenantId }, 'Background calendar sync failed')
+      );
     }
 
     if (!canCreateAppointments) {
@@ -682,4 +707,4 @@ async function updateCalendarEvent(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-module.exports = { calendarStatus, connect, disconnect, events, createEvent, updateEventStatus, remindEvent, getDefaultCalendar, setDefaultCalendar, updateCalendarEvent, getValidToken, getOwnerCalendarId };
+module.exports = { calendarStatus, connect, disconnect, events, createEvent, updateEventStatus, remindEvent, getDefaultCalendar, setDefaultCalendar, updateCalendarEvent, getValidToken, getOwnerCalendarId, runCalendarSync };

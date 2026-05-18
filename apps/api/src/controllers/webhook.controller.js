@@ -1,5 +1,6 @@
 const { supabase } = require('@autoagenda/db');
 const { getCalendarEvent, updateEventTitleAndColor, refreshAccessToken } = require('../services/google');
+const { runCalendarSync } = require('./calendar.controller');
 const { sendTemplate, sendTextMessage } = require('../services/whatsapp');
 const { getSubscriptionStatus } = require('../services/mercadopago');
 const env = require('../config/env');
@@ -550,4 +551,34 @@ async function handleAuthorizedPaymentEvent(paymentId, action) {
   }
 }
 
-module.exports = { verify, receive, handleMercadoPagoWebhook };
+async function handleGoogleCalendarWebhook(req, res) {
+  // Always return 200 immediately — Google retries if it doesn't get 200
+  res.sendStatus(200);
+
+  const channelId = req.headers['x-goog-channel-id'];
+  const resourceState = req.headers['x-goog-resource-state'];
+
+  // 'sync' = initial ping after watch() registration, nothing to process
+  if (!channelId || resourceState === 'sync') return;
+
+  try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, tenant_id')
+      .eq('google_channel_id', channelId)
+      .maybeSingle();
+
+    if (!user) {
+      logger.warn({ channelId }, '[GCal Webhook] Unknown channel ID, ignoring');
+      return;
+    }
+
+    logger.info({ userId: user.id, tenantId: user.tenant_id }, '[GCal Webhook] Triggering calendar sync');
+    const result = await runCalendarSync(user.id, user.tenant_id);
+    logger.info({ ...result, userId: user.id }, '[GCal Webhook] Sync complete');
+  } catch (err) {
+    logger.error({ err, channelId }, '[GCal Webhook] Sync failed');
+  }
+}
+
+module.exports = { verify, receive, handleMercadoPagoWebhook, handleGoogleCalendarWebhook };
