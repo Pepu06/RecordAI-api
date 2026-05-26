@@ -247,6 +247,14 @@ async function watchCalendar(accessToken, calendarId, channelId, webhookUrl) {
   return res.json(); // { id, resourceId, expiration (ms timestamp string) }
 }
 
+async function deleteCalendarEvent(accessToken, eventId, calendarId = 'primary') {
+  const res = await fetch(`${CAL_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return res.ok || res.status === 404 || res.status === 410;
+}
+
 async function stopCalendarWatch(accessToken, channelId, resourceId) {
   const res = await fetch(`${CAL_BASE}/channels/stop`, {
     method: 'POST',
@@ -271,4 +279,5 @@ module.exports = {
   createCalendarEventInCalendar,
   watchCalendar,
   stopCalendarWatch,
+  deleteCalendarEvent,
 };

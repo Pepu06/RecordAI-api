@@ -3,7 +3,8 @@ const { AppError, NotFoundError } = require('../errors');
 const logger = require('../config/logger');
 const { appointmentsQueue } = require('../workers/queue');
 const { JobName } = require('@autoagenda/shared');
-const { updateEventColor, updateCalendarEventDateTime, refreshAccessToken, getCalendarEvents } = require('../services/google');
+const { updateEventColor, updateCalendarEventDateTime, refreshAccessToken, getCalendarEvents, deleteCalendarEvent } = require('../services/google');
+const { getValidToken, getOwnerCalendarId } = require('./calendar.controller');
 
 const APPOINTMENT_SELECT = '*, contact:contacts(*), service:services(*), user:users(*)';
 const REMINDER_CONFIG_ERROR = 'Completá Nombre del negocio y Mensaje personalizable en Configuración para poder crear citas y enviar recordatorios.';
@@ -146,11 +147,25 @@ async function update(req, res, next) {
 async function remove(req, res, next) {
   try {
     const { data: existing } = await supabase
-      .from('appointments').select('id').eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
+      .from('appointments').select('id, google_event_id, user_id').eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
     if (!existing) throw new NotFoundError('Appointment not found');
 
     const { error } = await supabase.from('appointments').delete().eq('id', req.params.id);
     if (error) throw error;
+
+    if (existing.google_event_id) {
+      (async () => {
+        try {
+          const accessToken = await getValidToken(existing.user_id);
+          if (!accessToken) return;
+          const calendarId = await getOwnerCalendarId(req.tenantId);
+          await deleteCalendarEvent(accessToken, existing.google_event_id, calendarId);
+        } catch (e) {
+          logger.warn({ err: e }, '[GCal] Failed to delete calendar event on appointment remove');
+        }
+      })();
+    }
+
     return res.json({ success: true, data: null });
   } catch (err) { return next(err); }
 }
