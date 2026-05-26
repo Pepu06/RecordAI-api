@@ -6,6 +6,7 @@ import styles from './contacts.module.css';
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -124,6 +125,18 @@ export default function ContactsPage() {
         </form>
       )}
 
+      {!loading && contacts.length > 0 && (
+        <div className={styles.searchWrapper}>
+          <input
+            type="text"
+            placeholder="Buscar por nombre, apellido o teléfono..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
+      )}
+
       {loading ? (
         <div className="spinnerWrap"><div className="spinner" /></div>
       ) : contacts.length === 0 ? (
@@ -142,7 +155,16 @@ export default function ContactsPage() {
               </tr>
             </thead>
             <tbody>
-              {contacts.map((c) => (
+              {contacts
+                .filter((c) => {
+                  const q = search.toLowerCase().trim();
+                  if (!q) return true;
+                  return (
+                    c.name?.toLowerCase().includes(q) ||
+                    c.phone?.toLowerCase().includes(q)
+                  );
+                })
+                .map((c) => (
                 <tr key={c.id}>
                   <td>{c.name}</td>
                   <td>{c.phone}</td>
