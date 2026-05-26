@@ -396,9 +396,84 @@ async function getGoogleCalendars(req, res, next) {
   } catch (err) { return next(err); }
 }
 
+// ---------- EXCEPTIONS (calendar-level block/unblock) ----------
+
+async function listExceptions(req, res, next) {
+  try {
+    const { from, to } = req.query;
+
+    const { data: schedules, error: schedErr } = await supabase
+      .from('schedules').select('id').eq('tenant_id', req.tenantId);
+    if (schedErr) throw schedErr;
+    if (!schedules?.length) return res.json({ success: true, data: [] });
+
+    const ids = schedules.map(s => s.id);
+    let query = supabase.from('schedule_exceptions').select('*').in('schedule_id', ids);
+    if (from) query = query.gte('date', from);
+    if (to)   query = query.lte('date', to);
+
+    const { data: exceptions, error } = await query;
+    if (error) throw error;
+
+    // Deduplicate by date — prefer is_blocked=true entries
+    const byDate = {};
+    for (const e of (exceptions || [])) {
+      if (!byDate[e.date] || e.is_blocked) byDate[e.date] = convertKeys(e);
+    }
+
+    return res.json({ success: true, data: Object.values(byDate) });
+  } catch (err) { return next(err); }
+}
+
+async function upsertException(req, res, next) {
+  try {
+    const { date, isBlocked = true, startTime, endTime } = req.body;
+    if (!date) throw new ValidationError('date requerido (YYYY-MM-DD).');
+
+    const { data: schedules, error: schedErr } = await supabase
+      .from('schedules').select('id').eq('tenant_id', req.tenantId);
+    if (schedErr) throw schedErr;
+    if (!schedules?.length) throw new AppError('No hay horarios configurados.', 400);
+
+    for (const s of schedules) {
+      await supabase.from('schedule_exceptions')
+        .delete().eq('schedule_id', s.id).eq('date', date);
+
+      await supabase.from('schedule_exceptions').insert({
+        schedule_id: s.id,
+        date,
+        is_blocked:  Boolean(isBlocked),
+        start_time:  startTime || null,
+        end_time:    endTime   || null,
+      });
+    }
+
+    return res.json({ success: true, data: { date, isBlocked, startTime: startTime || null, endTime: endTime || null } });
+  } catch (err) { return next(err); }
+}
+
+async function deleteException(req, res, next) {
+  try {
+    const { date } = req.params;
+    if (!date) throw new ValidationError('date requerido.');
+
+    const { data: schedules, error: schedErr } = await supabase
+      .from('schedules').select('id').eq('tenant_id', req.tenantId);
+    if (schedErr) throw schedErr;
+
+    if (schedules?.length) {
+      const ids = schedules.map(s => s.id);
+      await supabase.from('schedule_exceptions').delete().in('schedule_id', ids).eq('date', date);
+    }
+
+    return res.json({ success: true, data: null });
+  } catch (err) { return next(err); }
+}
+
 module.exports = {
   getProfile, updateProfile, uploadProfileImage,
   listSchedules, getSchedule, createSchedule, updateSchedule, deleteSchedule,
   listTypes, getType, createType, updateType, deleteType,
   getGoogleCalendars,
+  listExceptions, upsertException, deleteException,
 };

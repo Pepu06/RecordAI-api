@@ -91,6 +91,14 @@ export default function CalendarPage() {
   const [defaultCalendarId, setDefaultCalendarId] = useState('primary');
   const [savingDefault, setSavingDefault]         = useState(false);
 
+  // Block day state
+  const [blockedDates, setBlockedDates]         = useState({});
+  const [showBlockModal, setShowBlockModal]     = useState(false);
+  const [blockMode, setBlockMode]               = useState('day');
+  const [blockStartTime, setBlockStartTime]     = useState('09:00');
+  const [blockEndTime, setBlockEndTime]         = useState('18:00');
+  const [blockSaving, setBlockSaving]           = useState(false);
+
   const fetchStatus = useCallback(async () => {
     const res = await api.get('/calendar/status');
     setConnected(res.data.connected);
@@ -104,6 +112,18 @@ export default function CalendarPage() {
       setConnected(res.connected !== false);
     } catch { }
     finally { setSyncing(false); }
+  }, []);
+
+  const fetchExceptions = useCallback(async (y, m) => {
+    const from = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    const last = new Date(y, m + 1, 0).getDate();
+    const to   = `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+    try {
+      const res = await api.get(`/autoagenda/exceptions?from=${from}&to=${to}`);
+      const map = {};
+      for (const ex of (res.data || [])) map[ex.date] = ex;
+      setBlockedDates(map);
+    } catch { /* no schedules configured yet */ }
   }, []);
 
   const fetchCalendarsAndDefault = useCallback(async () => {
@@ -127,6 +147,10 @@ export default function CalendarPage() {
       fetchCalendarsAndDefault();
     }
   }, [connected, fetchEvents, fetchCalendarsAndDefault]);
+
+  useEffect(() => {
+    fetchExceptions(currentDate.getFullYear(), currentDate.getMonth());
+  }, [currentDate, fetchExceptions]);
 
   async function saveDefaultCalendar(calId) {
     setDefaultCalendarId(calId);
@@ -204,6 +228,34 @@ export default function CalendarPage() {
       alert(err.message || 'Error al enviar recordatorio');
     } finally {
       setReminding(null);
+    }
+  }
+
+  async function handleBlockDay() {
+    setBlockSaving(true);
+    try {
+      const body = blockMode === 'day'
+        ? { date: selectedDate, isBlocked: true }
+        : { date: selectedDate, isBlocked: false, startTime: blockStartTime, endTime: blockEndTime };
+      await api.post('/autoagenda/exceptions', body);
+      await fetchExceptions(currentDate.getFullYear(), currentDate.getMonth());
+      setShowBlockModal(false);
+    } catch (err) {
+      alert(err.message || 'Error al bloquear el día');
+    } finally {
+      setBlockSaving(false);
+    }
+  }
+
+  async function handleUnblockDay() {
+    setBlockSaving(true);
+    try {
+      await api.delete(`/autoagenda/exceptions/${selectedDate}`);
+      await fetchExceptions(currentDate.getFullYear(), currentDate.getMonth());
+    } catch (err) {
+      alert(err.message || 'Error al desbloquear el día');
+    } finally {
+      setBlockSaving(false);
     }
   }
 
@@ -381,6 +433,7 @@ export default function CalendarPage() {
                   events={day ? (eventsByDate[day.dateStr] || []) : []}
                   isSelected={day?.dateStr === selectedDate}
                   isToday={day?.dateStr === todayStr}
+                  isBlocked={day ? !!blockedDates[day.dateStr] : false}
                   onDayClick={() => day && setSelectedDate(day.dateStr)}
                   onEventClick={ev => { setSelectedDate(day.dateStr); setSelectedEvent(ev); }}
                 />
@@ -413,6 +466,48 @@ export default function CalendarPage() {
               </div>
             </div>
 
+            {/* Block day controls */}
+            {blockedDates[selectedDate] ? (
+              <div style={{
+                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
+                padding: '10px 14px', marginBottom: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#dc2626' }}>
+                    {blockedDates[selectedDate].isBlocked
+                      ? '⛔ Día bloqueado'
+                      : `⏱ Horario bloqueado: ${blockedDates[selectedDate].startTime?.slice(0,5)} – ${blockedDates[selectedDate].endTime?.slice(0,5)}`
+                    }
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#ef4444', marginTop: 2 }}>No se aceptan turnos este día</div>
+                </div>
+                <button
+                  disabled={blockSaving}
+                  onClick={handleUnblockDay}
+                  style={{
+                    padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    background: 'none', color: '#dc2626', border: '1px solid #fecaca',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {blockSaving ? '...' : 'Desbloquear'}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setBlockMode('day'); setShowBlockModal(true); }}
+                style={{
+                  width: '100%', marginBottom: 12, padding: '8px 14px',
+                  borderRadius: 10, border: '1px dashed var(--border)',
+                  background: 'none', color: 'var(--text-3)', fontSize: 13,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                ⛔ Bloquear este día
+              </button>
+            )}
+
             {selectedDayEvents.length === 0 ? (
               <div className={styles.sidebarEmpty}>
                 <div className={styles.sidebarEmptyIcon}>📅</div>
@@ -444,6 +539,87 @@ export default function CalendarPage() {
           onClose={() => setSelectedEvent(null)}
           onTransferChange={handleTransferChange}
         />
+      )}
+
+      {showBlockModal && (
+        <div className={styles.popupBackdrop} onClick={() => setShowBlockModal(false)}>
+          <div className={styles.popup} style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <div className={styles.popupHeader}>
+              <div className={styles.popupAccent} style={{ background: '#ef4444' }} />
+              <h3 className={styles.popupTitle}>Bloquear disponibilidad</h3>
+              <button className={styles.popupClose} onClick={() => setShowBlockModal(false)}>✕</button>
+            </div>
+            <div className={styles.popupBody} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
+                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-AR', {
+                  weekday: 'long', day: 'numeric', month: 'long',
+                })}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { id: 'day',  label: '⛔ Día completo' },
+                  { id: 'time', label: '⏱ Horario específico' },
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setBlockMode(opt.id)}
+                    style={{
+                      flex: 1, padding: '8px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+                      border: `2px solid ${blockMode === opt.id ? '#ef4444' : 'var(--border)'}`,
+                      background: blockMode === opt.id ? '#fef2f2' : 'var(--surface)',
+                      color: blockMode === opt.id ? '#dc2626' : 'var(--text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {blockMode === 'time' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Desde</label>
+                    <input
+                      type="time"
+                      value={blockStartTime}
+                      onChange={e => setBlockStartTime(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 14 }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Hasta</label>
+                    <input
+                      type="time"
+                      value={blockEndTime}
+                      onChange={e => setBlockEndTime(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 14 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div style={{ fontSize: 12, color: 'var(--text-3)', background: 'var(--surface-2)', borderRadius: 8, padding: '8px 10px' }}>
+                {blockMode === 'day'
+                  ? 'Los clientes no podrán agendar turnos en este día.'
+                  : 'Los clientes no podrán agendar turnos en el horario seleccionado.'}
+              </div>
+
+              <button
+                disabled={blockSaving}
+                onClick={handleBlockDay}
+                style={{
+                  padding: '10px 0', borderRadius: 10, fontWeight: 700, fontSize: 14,
+                  background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer',
+                  opacity: blockSaving ? 0.6 : 1,
+                }}
+              >
+                {blockSaving ? 'Guardando...' : 'Confirmar bloqueo'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showCreate && (
@@ -544,14 +720,18 @@ export default function CalendarPage() {
   );
 }
 
-function DayCell({ day, events, isSelected, isToday, onDayClick, onEventClick }) {
+function DayCell({ day, events, isSelected, isToday, isBlocked, onDayClick, onEventClick }) {
   if (!day) return <div className={styles.dayEmpty} />;
   return (
     <div
       className={`${styles.dayCell} ${isSelected ? styles.dayCellSelected : ''} ${isToday ? styles.dayCellToday : ''}`}
       onClick={onDayClick}
+      style={isBlocked ? { background: 'rgba(239,68,68,0.06)' } : undefined}
     >
       <span className={`${styles.dayNumber} ${isToday ? styles.dayNumberToday : ''}`}>{day.number}</span>
+      {isBlocked && (
+        <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 700, lineHeight: 1 }}>⛔</span>
+      )}
       <div className={styles.dayPills}>
         {events.slice(0, 3).map(ev => {
           const s = getStatusMeta(ev.status);

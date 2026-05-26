@@ -210,7 +210,7 @@ async function processAction(req, res) {
   // Notify admin asynchronously — never blocks the response
   notifyAdmin(userId, isConfirmed, clientTitle, eventDate).catch(() => {});
 
-  const icon    = isConfirmed ? '🎉' : '👋';
+  const icon    = isConfirmed ? '✅' : '❌';
   const heading = isConfirmed ? '¡Cita confirmada!' : 'Turno cancelado';
   const message = isConfirmed
     ? 'Gracias por confirmar. Te esperamos en el turno.'

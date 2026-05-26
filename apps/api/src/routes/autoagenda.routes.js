@@ -20,6 +20,11 @@ router.get('/schedules/:id',    ctrl.getSchedule);
 router.put('/schedules/:id',    ctrl.updateSchedule);
 router.delete('/schedules/:id', ctrl.deleteSchedule);
 
+// Exceptions (block/unblock dates from calendar)
+router.get('/exceptions',        ctrl.listExceptions);
+router.post('/exceptions',       ctrl.upsertException);
+router.delete('/exceptions/:date', ctrl.deleteException);
+
 // Types
 router.get('/types',        ctrl.listTypes);
 router.post('/types',       ctrl.createType);
