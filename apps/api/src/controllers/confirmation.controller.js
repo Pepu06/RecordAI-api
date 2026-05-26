@@ -100,8 +100,8 @@ function renderPage(title, bodyHtml) {
     .actions { display: flex; gap: 12px; flex-direction: column; }
     .btn { display: block; width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; border: none; text-decoration: none; transition: opacity 0.15s; }
     .btn:hover { opacity: 0.85; }
-    .btn-confirm { background: #C9FF3D; color: #0B0C0F; }
-    .btn-cancel  { background: transparent; color: #8B8FA8; border: 1px solid #252630; }
+    .btn-confirm { background: #00ff08ff; color: #ffffff; }
+    .btn-cancel  { background: #ff0000ff; color: #ffffff; border: 1px solid #252630; }
     .status-icon { font-size: 52px; margin-bottom: 20px; }
   </style>
 </head>
